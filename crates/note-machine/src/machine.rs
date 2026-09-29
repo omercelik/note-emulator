@@ -634,9 +634,12 @@ impl NoteMachine {
         ))
     }
 
-    pub fn set_softap_passphrase(&mut self, psk: &str) {
+    pub fn set_softap_passphrase(&mut self, psk: &str) -> bool {
         if let Some(peer) = &mut self.m.bus.periph.wifi.peer {
             peer.set_passphrase(psk);
+            true
+        } else {
+            false
         }
     }
 
@@ -951,6 +954,9 @@ fn cycles_to_ns(cycles: u64) -> u64 {
 }
 
 impl Guest for NoteMachine {
+    fn set_softap_passphrase(&mut self, psk: &str) -> bool {
+        NoteMachine::set_softap_passphrase(self, psk)
+    }
     fn profile_id(&self) -> &str {
         &self.profile.id
     }

@@ -30,7 +30,7 @@ Response `{"ok":true,"protocol":1,"runtime":"…","engine":"esp32sim@4ab7e90+not
 
 `hello, status, pause, resume, reset, stop · button.down, button.up, button.press ·
 battery.get, battery.set, power.get, power.set · clock.get, clock.set · network.info,
-network.configure · display.get, screenshot.capture · console.write, logs.export ·
+network.configure, network.softap_password · display.get, screenshot.capture · console.write, logs.export ·
 snapshot.list/save/load/delete · record.start/stop · settings.get, diagnose · boot.download,
 boot.normal`. Every response: `{"ok":true,…}` or `{"ok":false,"error":{"code":"…","message":"…"}}`.
 
@@ -61,3 +61,9 @@ A client applies a delta only when `base_seq` equals the sequence it holds and t
 matches. Anything else is rejected and the next message must be a full image. A full image
 (`base_seq` 0) is always applied, also in a new epoch: that is how a client follows a restart
 or a snapshot restore (`snapshot.load` starts a new epoch).
+
+`network.softap_password` takes a `password` string of 8–63 printable ASCII characters.
+It joins a protected guest setup hotspot while User or Setup networking is active.
+The password is held for this running session, is not saved in AVD configuration, and
+is never echoed in a response. Firmware with local-origin checks may require Setup
+networking and its original 192.168.4.1 address.

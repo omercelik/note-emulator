@@ -27,6 +27,8 @@ struct Script {
 
 /// What the runtime needs from either a replay or, later, a live machine.
 pub trait Guest {
+    /// Configure the host station's password for the guest's protected setup hotspot.
+    fn set_softap_passphrase(&mut self, _psk: &str) -> bool { false }
     fn profile_id(&self) -> &str;
     /// `"replay"` or `"esp32sim"`. Reported by `hello`.
     fn engine(&self) -> &'static str;

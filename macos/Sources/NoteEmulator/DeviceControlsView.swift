@@ -165,6 +165,8 @@ private struct PowerTab: View {
 private struct NetworkTab: View {
     let model: DeviceModel
     @State var avd: String?
+    @State private var hotspotPassword = ""
+    @State private var passwordApplied = false
 
     var body: some View {
         Form {
@@ -192,6 +194,21 @@ private struct NetworkTab: View {
                         }
                         Button("Open in Browser") { if let url = URL(string: model.browserURL) { NSWorkspace.shared.open(url) } }
                     }
+                }
+            }
+            if model.networkActive == "user" || model.networkActive == "setup" {
+                Section("Device setup hotspot") {
+                    Text("If the device shows a Wi-Fi password, enter it here so this Mac can open its setup page. This password applies until the device stops.")
+                        .font(.callout).foregroundStyle(.secondary)
+                    SecureField("Password shown on the device", text: $hotspotPassword)
+                    Button("Apply Password") {
+                        Task {
+                            passwordApplied = await model.connectSetupHotspot(password: hotspotPassword)
+                            if passwordApplied { hotspotPassword = "" }
+                        }
+                    }
+                    .disabled(!(8...63).contains(hotspotPassword.utf8.count))
+                    if passwordApplied { Text("Password applied. Open the browser URL above and use the device's pairing code.").font(.caption) }
                 }
             }
         }

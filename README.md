@@ -18,13 +18,14 @@ iOS Simulator. It runs **unmodified firmware** on a Rust engine (a fork of
 
 Download the macOS arm64 DMG from [Releases](https://github.com/omercelik/note-emulator/releases/latest),
 open it, and drag **NOTE Emulator.app** to Applications. Open the app, then choose Add the NOTE4
-demo or Add the NOTE4C Friday demo, then Open. The ROM and both demo firmwares are included.
+demo or Add NOTE4C emini Home, then Open. The ROM and both demo firmwares are included.
 Add Bundled Device in the toolbar lets you add either later.
 
-The NOTE4C sample is the MIT-licensed [Today Is Friday v0.1.2](https://github.com/eyaeya/today-is-friday/releases/tag/v0.1.2)
-calendar, with Chinese text. It starts with Wi-Fi/time setup and User networking enabled:
-open Controls → Network to find its browser setup URL. Use the emulator's virtual Wi-Fi
-network (`esp32sim` by default). It is community firmware, not a factory image.
+The NOTE4C sample is [emini Home v0.6.2](https://github.com/fiedoruk/emini-home/releases/tag/v0.6.2),
+an English-first weather, headlines, and notes app. Setup networking is enabled for this sample; macOS may ask to install the network helper.
+On first boot, enter the hotspot password shown on its screen in Controls → Network → Device
+setup hotspot. Open the browser URL there and pair with the code on the screen. The password
+must be entered again after the device stops. This is community firmware, not a factory image.
 
 To build from source:
 
@@ -81,7 +82,7 @@ networking, so a device is reachable from this Mac but not from other machines o
 ## Using the app
 
 On first run the app imports the bundled ESP32-S3 mask ROM (checked against its known
-SHA-256). An empty device list offers the NOTE4 reference demo and NOTE4C Friday demo.
+SHA-256). An empty device list offers the NOTE4 reference demo and NOTE4C emini Home.
 
 <p align="center">
   <img src="docs/media/manager.png" width="560" alt="The device manager: NOTE4 demo running, NOTE4C Gemini Live stopped, each with Open and a ⋯ menu">

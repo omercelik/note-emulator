@@ -214,6 +214,16 @@ impl<G: Guest> Instance<G> {
                 vec![self.ok(id, json!({ "mv": mv }))]
             }
             "network.info" => vec![self.ok(id, self.network.report())],
+            "network.softap_password" => {
+                let password = value.get("password").and_then(|v| v.as_str()).unwrap_or("");
+                if !(8..=63).contains(&password.len()) || !password.bytes().all(|b| (32..=126).contains(&b)) {
+                    return vec![self.fail(id, "BadRequest", "Hotspot password must be 8 to 63 printable ASCII characters")];
+                }
+                if self.network.active == HostMode::Disabled || !self.guest.set_softap_passphrase(password) {
+                    return vec![self.fail(id, "Unsupported", "Start the device with User or Setup networking first")];
+                }
+                vec![self.ok(id, json!({}))]
+            }
             "network.configure" => {
                 let mode = match value.get("mode").and_then(|v| v.as_str()).unwrap_or("disabled") {
                     "user" => HostMode::User,
@@ -830,6 +840,20 @@ mod tests {
     use std::time::Duration;
 
     const TRACE: &str = include_str!("../../../fixtures/traces/note4-synthetic.jsonl");
+
+    #[test]
+    fn setup_password_errors_do_not_echo_the_password() {
+        let mut inst = instance();
+        let client = inst.attach();
+        for password in ["short", "demo-password", "non-ascii-\u{00e9}"] {
+            let request = json!({ "method": "network.softap_password", "password": password });
+            let reply = inst.request(client, &request.to_string());
+            let text = String::from_utf8(reply[0].payload.clone()).unwrap();
+            assert!(!text.contains(password));
+            let parsed: Value = serde_json::from_str(&text).unwrap();
+            assert!(parsed.get("error").is_some());
+        }
+    }
 
     fn instance() -> Instance<ReplayMachine> {
         Instance::from_trace(TRACE).unwrap()

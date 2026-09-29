@@ -39,11 +39,11 @@ ID=$(sandbox-exec -f "$WORK/isolate.sb" "$M/ndb" avd create --profile note4 --fi
 step "AVD runs with the JIT"                    "$M/note-emu" --avd "$ID" --seconds 3
 grep -q "2 frames" "$WORK/step.log" || { echo "FAIL  JIT run drew no frames"; fail=1; }
 step "AVD runs on the interpreter"              "$M/note-emu" --avd "$ID" --seconds 3 --no-jit
-FRIDAY="$WORK/NOTE Emulator.app/Contents/Resources/samples/today-is-friday-v0.1.2-note4c-merged-offset-0x0.bin"
-[ -f "$FRIDAY" ] || { echo "FAIL  bundled NOTE4C Friday demo missing"; exit 1; }
+EMINI="$WORK/NOTE Emulator.app/Contents/Resources/samples/emini-home-0.6.2-note4c-merged.bin"
+[ -f "$EMINI" ] || { echo "FAIL  bundled NOTE4C emini Home missing"; exit 1; }
 [ ! -f "$WORK/NOTE Emulator.app/Contents/Resources/samples/note4c-factory.bin" ] || { echo "FAIL  private factory image bundled"; exit 1; }
-FRIDAY_ID=$(sandbox-exec -f "$WORK/isolate.sb" "$M/ndb" avd create --profile note4c --firmware "$FRIDAY")
-step "bundled NOTE4C Friday demo boots" "$M/note-emu" --avd "$FRIDAY_ID" --seconds 4
+EMINI_ID=$(sandbox-exec -f "$WORK/isolate.sb" "$M/ndb" avd create --profile note4c --firmware "$EMINI")
+step "bundled NOTE4C emini Home boots" "$M/note-emu" --avd "$EMINI_ID" --seconds 4
 grep -qE ', [1-9][0-9]* frames' "$WORK/step.log" || { echo "FAIL  NOTE4C demo drew no frame"; fail=1; }
 sandbox-exec -f "$WORK/isolate.sb" "$M/NoteEmulator" > "$WORK/gui.log" 2>&1 &
 GUI=$!

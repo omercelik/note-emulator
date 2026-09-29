@@ -319,6 +319,16 @@ final class DeviceModel {
         _ = try? await call([("method", .string("network.configure")), ("mode", .string(mode))])
     }
 
+    func connectSetupHotspot(password: String) async -> Bool {
+        do {
+            _ = try await call([("method", .string("network.softap_password")), ("password", .string(password))])
+            return true
+        } catch {
+            lastError = "Could not apply the setup hotspot password: \(error)"
+            return false
+        }
+    }
+
     func clearView() async {
         lines = []
         _ = try? await call([("method", .string("logs.clear_view"))])

@@ -39,10 +39,12 @@ cp "$ROOT/third_party/esp-rom-elfs/esp32s3_rev0_rom.elf" "$APP/Contents/Resource
 cp "$ROOT/third_party/esp-rom-elfs/LICENSE" "$APP/Contents/Resources/rom/LICENSE"
 cp "$ROOT/third_party/zectrix-note4-epd-demo/zectrix-note4-epd-demo-v1.0.0.bin" "$APP/Contents/Resources/samples/"
 cp "$ROOT/third_party/zectrix-note4-epd-demo/LICENSE" "$APP/Contents/Resources/samples/LICENSE"
-cp "$ROOT/third_party/today-is-friday/today-is-friday-v0.1.2-note4c-merged-offset-0x0.bin" "$APP/Contents/Resources/samples/"
-mkdir -p "$APP/Contents/Resources/licenses/today-is-friday"
-cp "$ROOT/third_party/today-is-friday/LICENSE" "$ROOT/third_party/today-is-friday/SourceHanSansSC-OFL-1.1.txt" \
-    "$ROOT/third_party/today-is-friday/README.md" "$APP/Contents/Resources/licenses/today-is-friday/"
+cp "$ROOT/third_party/emini-home/emini-home-0.6.2-note4c-merged.bin" "$APP/Contents/Resources/samples/"
+NOTICE_DIR="$APP/Contents/Resources/licenses/emini-home"
+mkdir -p "$NOTICE_DIR"
+cp "$ROOT/third_party/emini-home/LICENSE" "$ROOT/third_party/emini-home/THIRD_PARTY_NOTICES.md" \
+    "$ROOT/third_party/emini-home/README.md" "$NOTICE_DIR/"
+cp -R "$ROOT/third_party/emini-home/licenses" "$ROOT/third_party/emini-home/firmware" "$NOTICE_DIR/"
 cp "$ROOT/scripts/install-helper.sh" "$APP/Contents/Resources/install-helper.sh"
 chmod 755 "$APP/Contents/Resources/install-helper.sh"
 

@@ -85,12 +85,12 @@ extension DeviceWindowLiveTests {
         #expect(!FileManager.default.fileExists(atPath: home.appendingPathComponent("avd/\(id!).avd").path))
         #expect(FileManager.default.fileExists(atPath: repo.appendingPathComponent("third_party/zectrix-note4-epd-demo/zectrix-note4-epd-demo-v1.0.0.bin").path))
 
-        let friday = try #require(await model.createAvd(profile: "note4c",
-            firmware: repo.appendingPathComponent("third_party/today-is-friday/today-is-friday-v0.1.2-note4c-merged-offset-0x0.bin"),
-            name: "NOTE4C Friday", network: "user"), "\(model.message)")
-        let fridayRecord = try #require(model.avds.first { $0.id == friday })
-        #expect(fridayRecord.profile == "note4c" && fridayRecord.network == "user")
-        await model.delete(avd: friday)
-        #expect(!model.avds.contains { $0.id == friday })
+        let emini = try #require(await model.createAvd(profile: "note4c",
+            firmware: repo.appendingPathComponent("third_party/emini-home/emini-home-0.6.2-note4c-merged.bin"),
+            name: "NOTE4C emini Home", network: "setup"), "\(model.message)")
+        let eminiRecord = try #require(model.avds.first { $0.id == emini })
+        #expect(eminiRecord.profile == "note4c" && eminiRecord.network == "setup")
+        await model.delete(avd: emini)
+        #expect(!model.avds.contains { $0.id == emini })
     }
 }

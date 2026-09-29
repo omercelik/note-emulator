@@ -87,7 +87,7 @@ final class ManagerModel {
     }
 
     var note4cSampleFirmware: URL? {
-        sampleFirmware(named: "today-is-friday-v0.1.2-note4c-merged-offset-0x0.bin", repositoryPath: "third_party/today-is-friday")
+        sampleFirmware(named: "emini-home-0.6.2-note4c-merged.bin", repositoryPath: "third_party/emini-home")
     }
 
     private func sampleFirmware(named name: String, repositoryPath: String) -> URL? {
@@ -322,8 +322,8 @@ struct ManagerView: View {
                             .disabled(!model.romInstalled)
                         }
                         if let sample = model.note4cSampleFirmware {
-                            Button("Add the NOTE4C Friday demo") {
-                                Task { _ = await model.createAvd(profile: "note4c", firmware: sample, name: "NOTE4C Friday", network: "user") }
+                            Button("Add the NOTE4C emini Home") {
+                                Task { _ = await model.createAvd(profile: "note4c", firmware: sample, name: "NOTE4C emini Home", network: "setup") }
                             }
                             .disabled(!model.romInstalled)
                         }
@@ -389,8 +389,8 @@ struct ManagerView: View {
                     }
                 }
                 if let sample = model.note4cSampleFirmware {
-                    Button("NOTE4C Friday demo") {
-                        Task { _ = await model.createAvd(profile: "note4c", firmware: sample, name: "NOTE4C Friday", network: "user") }
+                    Button("NOTE4C emini Home") {
+                        Task { _ = await model.createAvd(profile: "note4c", firmware: sample, name: "NOTE4C emini Home", network: "setup") }
                     }
                 }
             }

@@ -1,6 +1,6 @@
-Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font
-Name 'Source'. Source is a trademark of Adobe in the United States
-and/or other countries.
+TRMNL12 and TRMNL16 pixel fonts (Regular and Bold), version 1.002
+Copyright (c) 2026 Heavyweight Digital Type Foundry s.r.o. All rights reserved.
+Commissioned by TRMNL; distributed in https://github.com/usetrmnl/trmnl-framework (public/fonts/).
 
 This Font Software is licensed under the SIL Open Font License,
 Version 1.1.
