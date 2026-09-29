@@ -86,8 +86,8 @@ final class ManagerModel {
         sampleFirmware(named: "zectrix-note4-epd-demo-v1.0.0.bin", repositoryPath: "third_party/zectrix-note4-epd-demo")
     }
 
-    var note4cFactoryFirmware: URL? {
-        sampleFirmware(named: "note4c-factory.bin", repositoryPath: ".tools/bundled")
+    var note4cSampleFirmware: URL? {
+        sampleFirmware(named: "today-is-friday-v0.1.2-note4c-merged-offset-0x0.bin", repositoryPath: "third_party/today-is-friday")
     }
 
     private func sampleFirmware(named name: String, repositoryPath: String) -> URL? {
@@ -109,10 +109,11 @@ final class ManagerModel {
     }
 
     /// `ndb avd create`. Returns the new AVD id.
-    func createAvd(profile: String, firmware: URL, name: String) async -> String? {
+    func createAvd(profile: String, firmware: URL, name: String, network: String? = nil) async -> String? {
         var args = ["avd", "create", "--profile", profile, "--firmware", firmware.path]
         if !name.isEmpty { args += ["--name", name] }
         let id = await ndb(args)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let id, let network { _ = await ndb(["avd", "network", id, network]) }
         reload()
         return id
     }
@@ -312,7 +313,7 @@ struct ManagerView: View {
             List {
                 if model.avds.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("No devices yet. Create one with New AVD…, or add a bundled device below.")
+                        Text("No devices yet. Create one with New AVD…, or add a bundled demo below.")
                             .foregroundStyle(.secondary)
                         if let sample = model.sampleFirmware {
                             Button("Add the NOTE4 demo") {
@@ -320,9 +321,9 @@ struct ManagerView: View {
                             }
                             .disabled(!model.romInstalled)
                         }
-                        if let sample = model.note4cFactoryFirmware {
-                            Button("Add the NOTE4C factory test") {
-                                Task { _ = await model.createAvd(profile: "note4c", firmware: sample, name: "NOTE4C factory test") }
+                        if let sample = model.note4cSampleFirmware {
+                            Button("Add the NOTE4C Friday demo") {
+                                Task { _ = await model.createAvd(profile: "note4c", firmware: sample, name: "NOTE4C Friday", network: "user") }
                             }
                             .disabled(!model.romInstalled)
                         }
@@ -387,9 +388,9 @@ struct ManagerView: View {
                         Task { _ = await model.createAvd(profile: "note4", firmware: sample, name: "NOTE4 demo") }
                     }
                 }
-                if let sample = model.note4cFactoryFirmware {
-                    Button("NOTE4C factory test") {
-                        Task { _ = await model.createAvd(profile: "note4c", firmware: sample, name: "NOTE4C factory test") }
+                if let sample = model.note4cSampleFirmware {
+                    Button("NOTE4C Friday demo") {
+                        Task { _ = await model.createAvd(profile: "note4c", firmware: sample, name: "NOTE4C Friday", network: "user") }
                     }
                 }
             }

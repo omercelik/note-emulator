@@ -39,12 +39,12 @@ ID=$(sandbox-exec -f "$WORK/isolate.sb" "$M/ndb" avd create --profile note4 --fi
 step "AVD runs with the JIT"                    "$M/note-emu" --avd "$ID" --seconds 3
 grep -q "2 frames" "$WORK/step.log" || { echo "FAIL  JIT run drew no frames"; fail=1; }
 step "AVD runs on the interpreter"              "$M/note-emu" --avd "$ID" --seconds 3 --no-jit
-FACTORY="$WORK/NOTE Emulator.app/Contents/Resources/samples/note4c-factory.bin"
-if [ -f "$FACTORY" ]; then
-    FACTORY_ID=$(sandbox-exec -f "$WORK/isolate.sb" "$M/ndb" avd create --profile note4c --firmware "$FACTORY")
-    step "bundled NOTE4C factory test boots" "$M/note-emu" --avd "$FACTORY_ID" --seconds 4
-    grep -qE ', [1-9][0-9]* frames' "$WORK/step.log" || { echo "FAIL  NOTE4C factory test drew no frame"; fail=1; }
-fi
+FRIDAY="$WORK/NOTE Emulator.app/Contents/Resources/samples/today-is-friday-v0.1.2-note4c-merged-offset-0x0.bin"
+[ -f "$FRIDAY" ] || { echo "FAIL  bundled NOTE4C Friday demo missing"; exit 1; }
+[ ! -f "$WORK/NOTE Emulator.app/Contents/Resources/samples/note4c-factory.bin" ] || { echo "FAIL  private factory image bundled"; exit 1; }
+FRIDAY_ID=$(sandbox-exec -f "$WORK/isolate.sb" "$M/ndb" avd create --profile note4c --firmware "$FRIDAY")
+step "bundled NOTE4C Friday demo boots" "$M/note-emu" --avd "$FRIDAY_ID" --seconds 4
+grep -qE ', [1-9][0-9]* frames' "$WORK/step.log" || { echo "FAIL  NOTE4C demo drew no frame"; fail=1; }
 sandbox-exec -f "$WORK/isolate.sb" "$M/NoteEmulator" > "$WORK/gui.log" 2>&1 &
 GUI=$!
 sleep 4

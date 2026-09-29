@@ -39,11 +39,10 @@ cp "$ROOT/third_party/esp-rom-elfs/esp32s3_rev0_rom.elf" "$APP/Contents/Resource
 cp "$ROOT/third_party/esp-rom-elfs/LICENSE" "$APP/Contents/Resources/rom/LICENSE"
 cp "$ROOT/third_party/zectrix-note4-epd-demo/zectrix-note4-epd-demo-v1.0.0.bin" "$APP/Contents/Resources/samples/"
 cp "$ROOT/third_party/zectrix-note4-epd-demo/LICENSE" "$APP/Contents/Resources/samples/LICENSE"
-# The supplied NOTE4C factory image is local-only. Extract firmware, never saved device data.
-FACTORY=${NOTE4C_FACTORY_IMAGE:-${NOTE_PRIVATE_DIR:-$ROOT/.tools/private}/.device-backup/factory-2026-09-23.bin}
-if [ -f "$FACTORY" ]; then
-    python3 "$ROOT/scripts/prepare-note4c-sample.py" "$FACTORY" "$APP/Contents/Resources/samples/note4c-factory.bin"
-fi
+cp "$ROOT/third_party/today-is-friday/today-is-friday-v0.1.2-note4c-merged-offset-0x0.bin" "$APP/Contents/Resources/samples/"
+mkdir -p "$APP/Contents/Resources/licenses/today-is-friday"
+cp "$ROOT/third_party/today-is-friday/LICENSE" "$ROOT/third_party/today-is-friday/SourceHanSansSC-OFL-1.1.txt" \
+    "$ROOT/third_party/today-is-friday/README.md" "$APP/Contents/Resources/licenses/today-is-friday/"
 cp "$ROOT/scripts/install-helper.sh" "$APP/Contents/Resources/install-helper.sh"
 chmod 755 "$APP/Contents/Resources/install-helper.sh"
 

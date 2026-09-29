@@ -18,10 +18,13 @@ iOS Simulator. It runs **unmodified firmware** on a Rust engine (a fork of
 
 Download the macOS arm64 DMG from [Releases](https://github.com/omercelik/note-emulator/releases/latest),
 open it, and drag **NOTE Emulator.app** to Applications. Open the app, then choose Add the NOTE4
-demo or Add the NOTE4C factory test, then Open. The ROM, NOTE4 reference demo, and NOTE4C
-factory-test firmware are included in the download. Add Bundled Device in the toolbar lets
-you add either later. These are demonstration and factory-test images, not the full NOTE4
-consumer firmware.
+demo or Add the NOTE4C Friday demo, then Open. The ROM and both demo firmwares are included.
+Add Bundled Device in the toolbar lets you add either later.
+
+The NOTE4C sample is the MIT-licensed [Today Is Friday v0.1.2](https://github.com/eyaeya/today-is-friday/releases/tag/v0.1.2)
+calendar, with Chinese text. It starts with Wi-Fi/time setup and User networking enabled:
+open Controls → Network to find its browser setup URL. Use the emulator's virtual Wi-Fi
+network (`esp32sim` by default). It is community firmware, not a factory image.
 
 To build from source:
 
@@ -78,7 +81,7 @@ networking, so a device is reachable from this Mac but not from other machines o
 ## Using the app
 
 On first run the app imports the bundled ESP32-S3 mask ROM (checked against its known
-SHA-256). An empty device list offers the NOTE4 demo and, when bundled, the NOTE4C factory test.
+SHA-256). An empty device list offers the NOTE4 reference demo and NOTE4C Friday demo.
 
 <p align="center">
   <img src="docs/media/manager.png" width="560" alt="The device manager: NOTE4 demo running, NOTE4C Gemini Live stopped, each with Open and a ⋯ menu">
@@ -156,12 +159,6 @@ scripts/bundle-app.sh                      # dist/NOTE Emulator.app (ad-hoc sign
 scripts/readme-media.sh                    # regenerate docs/media from live devices
 ```
 
-The NOTE4C factory sample is prepared from a locally supplied 16 MB dump, using
-`NOTE4C_FACTORY_IMAGE` or `.tools/private/.device-backup/factory-2026-09-23.bin`. Packaging
-keeps only the bootloader, partition table, and first application; saved device settings,
-identity, and all other flash contents are erased. The dump is not committed. Source builds
-without it still include the NOTE4 reference demo.
-
 The README images are the app's own views, rendered from live devices by `scripts/readme-media.sh`
 (the NOTE4C animation is optional and needs a Gemini Live firmware image). Some firmware
 regression tests use private firmware images from `.tools/private` (or `NOTE_PRIVATE_DIR`); they
@@ -180,5 +177,5 @@ skip when those are absent.
 | `docs/` | the control protocol spec and the README images |
 | `scripts/` | verify, bundle, fixtures, helper install and checks |
 
-Firmware images, flash dumps and `.env` files are never committed. A firmware built with
+Private firmware images, flash dumps and `.env` files are never committed. A firmware built with
 credentials compiled in keeps them in its AVD's flash, under your data directory.
