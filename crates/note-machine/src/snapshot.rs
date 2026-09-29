@@ -1013,6 +1013,32 @@ mod tests {
     }
 
     #[test]
+    fn helper_owned_listener_survives_restore_without_rebinding() {
+        for softap in [false, true] {
+            let mut machine = NoteMachine::bare(&profile("note4c"));
+            let helper = loop {
+                let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+                if !forbidden_port(listener.local_addr().unwrap().port()) { break listener; }
+            };
+            let addr = helper.local_addr().unwrap();
+            if softap {
+                machine.adopt_softap(helper.try_clone().unwrap(), 80).unwrap();
+            } else {
+                machine.adopt_forward(helper.try_clone().unwrap(), 80).unwrap();
+            }
+            let blob = machine.save_snapshot(FW).unwrap();
+            for _ in 0..2 {
+                let report = machine.restore_snapshot(&blob, FW).unwrap();
+                assert!(report.occupied.is_empty(), "helper still owns the address: reuse its listener");
+                assert_eq!(report.host_sockets, 1);
+            }
+            machine.close_saved_endpoints();
+            drop(helper);
+            assert!(TcpListener::bind(addr).is_ok(), "explicit close releases retained listeners");
+        }
+    }
+
+    #[test]
     fn softap_listener_is_counted_and_rebound() {
         let mut machine = NoteMachine::bare(&profile("note4c"));
         let addr = loop {

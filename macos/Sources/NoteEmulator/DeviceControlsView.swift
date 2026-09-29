@@ -165,7 +165,6 @@ private struct PowerTab: View {
 private struct NetworkTab: View {
     let model: DeviceModel
     @State var avd: String?
-    @State private var passwordError = ""
 
     var body: some View {
         Form {
@@ -179,20 +178,23 @@ private struct NetworkTab: View {
                     ))
                         .labelsHidden()
                         .textFieldStyle(.roundedBorder)
-                        .task(id: model.setupHotspotPassword) {
-                            passwordError = ""
-                            let password = model.setupHotspotPassword
-                            guard password != model.appliedSetupHotspotPassword else { return }
-                            guard (8...63).contains(password.utf8.count) else { return }
-                            do { try await Task.sleep(for: .milliseconds(700)) }
-                            catch { return }
-                            guard !Task.isCancelled else { return }
-                            let applied = await model.connectSetupHotspot(password: password)
-                            guard !Task.isCancelled else { return }
-                            passwordError = applied ? "" : model.lastError
+                        .disabled(model.accessPointConnection == .connecting)
+                        .onSubmit { Task { await model.connectAccessPoint() } }
+                    HStack {
+                        Button(model.accessPointConnection == .connecting ? "Connecting…" : "Connect") {
+                            Task { await model.connectAccessPoint() }
                         }
-                    if !passwordError.isEmpty {
-                        Text(passwordError).font(.caption).foregroundStyle(.red)
+                        .disabled(model.accessPointConnection == .connecting)
+                        if model.accessPointConnection == .connecting { ProgressView().controlSize(.small) }
+                        if model.accessPointConnection == .connected {
+                            Text("Connected").foregroundStyle(.green)
+                            Button("Open Setup Page") {
+                                if let url = URL(string: model.browserURL) { NSWorkspace.shared.open(url) }
+                            }
+                        }
+                    }
+                    if case .failed(let message) = model.accessPointConnection {
+                        Text(message).font(.caption).foregroundStyle(.red)
                     }
                 }
             }

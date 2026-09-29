@@ -24,7 +24,7 @@ Add Bundled Device in the toolbar lets you add either later.
 The NOTE4C sample is [emini Home v0.6.2](https://github.com/fiedoruk/emini-home/releases/tag/v0.6.2),
 an English-first weather, headlines, and notes app. Setup networking is enabled for this sample; macOS may ask to install the network helper.
 On first boot, enter the hotspot password shown on its screen in Controls → Network → Emulator
-access point at the top of the Network tab. It is visible and applies automatically after a typing pause. Open the browser URL there and pair with the code on the screen. The password
+access point at the top of the Network tab. It is visible; click Connect to apply it and check that the setup page responds. Open the browser URL there and pair with the code on the screen. The password
 must be entered again after the device stops. This is community firmware, not a factory image.
 
 The default simulated Wi-Fi is **esp32sim**, protected with WPA2 password **12345678**.

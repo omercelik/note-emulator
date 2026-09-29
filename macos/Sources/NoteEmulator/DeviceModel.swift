@@ -48,7 +48,10 @@ final class DeviceModel {
     var browserURL = ""
     var restartRequired = false
     var lastError = ""
-    var setupHotspotPassword = ""
+    var setupHotspotPassword = "" {
+        didSet { if setupHotspotPassword != oldValue { accessPointConnection = .idle } }
+    }
+    var accessPointConnection: AccessPointConnectionState = .idle
     private(set) var appliedSetupHotspotPassword = ""
     var query = ""
     /// Minimum ESP-IDF level to show: "" all, else one of E W I D V.
@@ -335,6 +338,43 @@ final class DeviceModel {
             lastError = "Could not apply the setup hotspot password: \(error)"
             return false
         }
+    }
+
+    func connectAccessPoint() async {
+        guard accessPointConnection != .connecting else { return }
+        accessPointConnection = .connecting
+        let password = setupHotspotPassword
+        if !password.isEmpty {
+            guard (8...63).contains(password.utf8.count), password.utf8.allSatisfy({ (32...126).contains($0) }) else {
+                accessPointConnection = .failed("Enter the password shown on the device (8–63 characters).")
+                return
+            }
+            guard await connectSetupHotspot(password: password) else {
+                accessPointConnection = .failed("Could not apply the password. Keep the device running and try again.")
+                return
+            }
+        }
+        guard let url = URL(string: browserURL), url.scheme == "http", url.host != nil else {
+            accessPointConnection = .failed("No setup address is available. Select Setup address and start the device.")
+            return
+        }
+        for attempt in 0..<6 {
+            guard !Task.isCancelled else { accessPointConnection = .idle; return }
+            switch await AccessPointReachability.check(url) {
+            case .reachable:
+                accessPointConnection = .connected
+                return
+            case .httpError(403):
+                accessPointConnection = .failed("The setup page rejected this address. Use Setup address mode, then stop and start the device.")
+                return
+            case .httpError(let code):
+                accessPointConnection = .failed("The setup page returned HTTP \(code). Try connecting again.")
+                return
+            case .unreachable: break
+            }
+            if attempt < 5 { try? await Task.sleep(for: .milliseconds(500)) }
+        }
+        accessPointConnection = .failed("Could not reach the access point. Check the password shown on the device and try again.")
     }
 
     func clearView() async {

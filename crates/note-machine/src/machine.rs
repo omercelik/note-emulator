@@ -99,6 +99,8 @@ pub struct NoteMachine {
     reconnect_pending: bool,
     pub(crate) button_queue: Vec<snapshot::QueuedButton>,
     host_endpoints: Vec<HostLease>,
+    // Keep helper-owned bindings alive across snapshot restore; they cannot be rebound locally.
+    adopted_endpoints: Vec<(HostLease, TcpListener)>,
     quick_boot: QuickBootImage,
     /// Identity of the installed firmware for snapshots (the AVD's base image hash).
     firmware_hash: [u8; 32],
@@ -198,7 +200,7 @@ impl NoteMachine {
             state_epoch: 1,
             reconnect_pending: false,
             button_queue: Vec::new(),
-            host_endpoints: Vec::new(),
+            host_endpoints: Vec::new(), adopted_endpoints: Vec::new(),
             quick_boot: QuickBootImage::default(),
             firmware_hash: [0; 32], legacy: Default::default(), legacy_frame: None, legacy_version: 0, speaker_gate: Vec::new(), entropy: false,
         };
@@ -569,10 +571,13 @@ impl NoteMachine {
         listener: TcpListener,
         guest_port: u16,
     ) -> std::io::Result<SocketAddr> {
+        let retained = listener.try_clone()?;
         self.ensure_inbound();
         let mac = self.mac;
         let addr = self.m.bus.periph.wifi.net.as_mut().expect("virtual network").adopt_forward(listener, mac, guest_port)?;
         self.remember_endpoint(addr, guest_port, false);
+        self.adopted_endpoints.retain(|(lease, _)| lease.addr != addr);
+        self.adopted_endpoints.push((HostLease { addr, guest_port, softap: false }, retained));
         Ok(addr)
     }
 
@@ -589,6 +594,7 @@ impl NoteMachine {
             .unwrap_or_default();
         self.m.bus.periph.wifi.eth_rx.extend(frames);
         self.host_endpoints.retain(|lease| lease.softap);
+        self.adopted_endpoints.retain(|(lease, _)| lease.softap);
     }
 
     /// Listen on `bind` and carry accepted TCP to the guest SoftAP's `guest_port`.
@@ -611,10 +617,13 @@ impl NoteMachine {
         listener: std::net::TcpListener,
         guest_port: u16,
     ) -> std::io::Result<SocketAddr> {
+        let retained = listener.try_clone()?;
         let mac = self.softap_mac();
         let relay = self.m.bus.periph.wifi.relay.get_or_insert_with(|| esp32s3::softap::SoftApRelay::new(mac));
         let addr = relay.adopt(listener, guest_port)?;
         self.remember_endpoint(addr, guest_port, true);
+        self.adopted_endpoints.retain(|(lease, _)| lease.addr != addr);
+        self.adopted_endpoints.push((HostLease { addr, guest_port, softap: true }, retained));
         Ok(addr)
     }
 
@@ -673,6 +682,7 @@ impl NoteMachine {
             .unwrap_or_default();
         self.m.bus.periph.wifi.eth_rx.extend(frames);
         self.host_endpoints.retain(|lease| lease.addr != addr);
+        self.adopted_endpoints.retain(|(lease, _)| lease.addr != addr);
     }
 
     /// Guest-visible flash, including bytes the firmware has programmed.
@@ -802,12 +812,26 @@ impl NoteMachine {
         self.close_host_sockets();
         self.host_endpoints.clear();
         let mut occupied = Vec::new();
-        for lease in endpoints {
+        let mut endpoints = endpoints.to_vec();
+        // A current helper lease takes precedence over saved host policy.
+        for (lease, _) in &self.adopted_endpoints {
+            endpoints.retain(|saved| saved.addr != lease.addr);
+            endpoints.push(lease.clone());
+        }
+        for lease in &endpoints {
             if snapshot::forbidden_port(lease.addr.port()) {
                 occupied.push(lease.addr.to_string());
                 continue;
             }
-            let rebound = if lease.softap {
+            let adopted = self.adopted_endpoints.iter().find(|(current, _)| current.addr == lease.addr)
+                .map(|(_, listener)| listener.try_clone());
+            let rebound = if let Some(listener) = adopted {
+                listener.and_then(|listener| if lease.softap {
+                    self.adopt_softap(listener, lease.guest_port)
+                } else {
+                    self.adopt_forward(listener, lease.guest_port)
+                })
+            } else if lease.softap {
                 self.listen_softap(lease.addr, lease.guest_port)
             } else {
                 self.listen_forward(lease.addr, lease.guest_port)
@@ -844,6 +868,7 @@ impl NoteMachine {
     pub(crate) fn close_saved_endpoints(&mut self) {
         self.close_host_sockets();
         self.host_endpoints.clear();
+        self.adopted_endpoints.clear();
     }
 
     pub fn queue_button(&mut self, gpio: u8, level: bool, at_cycle: u64) {
@@ -1157,7 +1182,7 @@ impl NoteMachine {
             m, board: handle, profile: profile.clone(), mac, reboots: 0, power_cycles: 0, uart0_queue: Default::default(), rom_elf: Default::default(),
             paused: false, input: [Vec::new(), Vec::new()], frame_cache: Vec::new(),
             in_slice: false, state_epoch: 1, reconnect_pending: false,
-            button_queue: Vec::new(), host_endpoints: Vec::new(), quick_boot: QuickBootImage::default(), firmware_hash: [0; 32], legacy: Default::default(), legacy_frame: None, legacy_version: 0, speaker_gate: Vec::new(), entropy: false,
+            button_queue: Vec::new(), host_endpoints: Vec::new(), adopted_endpoints: Vec::new(), quick_boot: QuickBootImage::default(), firmware_hash: [0; 32], legacy: Default::default(), legacy_frame: None, legacy_version: 0, speaker_gate: Vec::new(), entropy: false,
         };
         machine.refresh_frame();
         machine
