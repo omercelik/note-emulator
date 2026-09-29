@@ -48,6 +48,8 @@ final class DeviceModel {
     var browserURL = ""
     var restartRequired = false
     var lastError = ""
+    var setupHotspotPassword = ""
+    private(set) var appliedSetupHotspotPassword = ""
     var query = ""
     /// Minimum ESP-IDF level to show: "" all, else one of E W I D V.
     var minLevel = ""
@@ -123,6 +125,9 @@ final class DeviceModel {
              try await Task.detached { try client.connect(path) }.value
          }) {
         self.socketPath = socketPath
+        let password = AccessPointPasswordCache.password(for: socketPath)
+        setupHotspotPassword = password
+        appliedSetupHotspotPassword = password
         self.microphoneAccess = microphoneAccess
         self.makeMicrophone = makeMicrophone
         self.connectMicrophone = connectMicrophone
@@ -323,6 +328,8 @@ final class DeviceModel {
         lastError = ""
         do {
             _ = try await call([("method", .string("network.softap_password")), ("password", .string(password))])
+            appliedSetupHotspotPassword = password
+            AccessPointPasswordCache.remember(password, for: socketPath)
             return true
         } catch {
             lastError = "Could not apply the setup hotspot password: \(error)"

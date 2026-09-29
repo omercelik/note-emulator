@@ -165,7 +165,6 @@ private struct PowerTab: View {
 private struct NetworkTab: View {
     let model: DeviceModel
     @State var avd: String?
-    @State private var hotspotPassword = ""
     @State private var passwordError = ""
 
     var body: some View {
@@ -174,12 +173,16 @@ private struct NetworkTab: View {
                 Section("Emulator access point") {
                     Text("Use this option to access the emulator’s access point. If it needs a password (shown on the device’s screen), enter it below.")
                         .font(.callout).foregroundStyle(.secondary)
-                    TextField("Password shown on the device (if required)", text: $hotspotPassword)
+                    TextField("Password shown on the device (if required)", text: Binding(
+                        get: { model.setupHotspotPassword },
+                        set: { model.setupHotspotPassword = $0 }
+                    ))
                         .labelsHidden()
                         .textFieldStyle(.roundedBorder)
-                        .task(id: hotspotPassword) {
+                        .task(id: model.setupHotspotPassword) {
                             passwordError = ""
-                            let password = hotspotPassword
+                            let password = model.setupHotspotPassword
+                            guard password != model.appliedSetupHotspotPassword else { return }
                             guard (8...63).contains(password.utf8.count) else { return }
                             do { try await Task.sleep(for: .milliseconds(700)) }
                             catch { return }
