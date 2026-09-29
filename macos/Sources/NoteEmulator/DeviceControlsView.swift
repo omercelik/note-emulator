@@ -166,8 +166,7 @@ private struct NetworkTab: View {
     let model: DeviceModel
     @State var avd: String?
     @State private var hotspotPassword = ""
-    @State private var passwordStatus = ""
-    @State private var passwordFailed = false
+    @State private var passwordError = ""
 
     var body: some View {
         Form {
@@ -179,8 +178,7 @@ private struct NetworkTab: View {
                         .labelsHidden()
                         .textFieldStyle(.roundedBorder)
                         .task(id: hotspotPassword) {
-                            passwordStatus = ""
-                            passwordFailed = false
+                            passwordError = ""
                             let password = hotspotPassword
                             guard (8...63).contains(password.utf8.count) else { return }
                             do { try await Task.sleep(for: .milliseconds(700)) }
@@ -188,14 +186,10 @@ private struct NetworkTab: View {
                             guard !Task.isCancelled else { return }
                             let applied = await model.connectSetupHotspot(password: password)
                             guard !Task.isCancelled else { return }
-                            passwordFailed = !applied
-                            passwordStatus = applied ? "Password applied automatically." : model.lastError
+                            passwordError = applied ? "" : model.lastError
                         }
-                    Text("Applies automatically when you stop typing.")
-                        .font(.caption).foregroundStyle(.secondary)
-                    if !passwordStatus.isEmpty {
-                        Text(passwordStatus).font(.caption)
-                            .foregroundStyle(passwordFailed ? Color.red : Color.secondary)
+                    if !passwordError.isEmpty {
+                        Text(passwordError).font(.caption).foregroundStyle(.red)
                     }
                 }
             }
