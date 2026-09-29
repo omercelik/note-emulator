@@ -65,7 +65,7 @@ struct Args {
     #[arg(long)]
     dump: bool,
     /// Virtual access point the firmware can see: `ssid=NAME[,psk=PASS][,chan=N]`.
-    #[arg(long, default_value = "ssid=esp32sim")]
+    #[arg(long, default_value = "ssid=esp32sim,psk=12345678")]
     wifi: String,
     /// Take the virtual AP's SSID and passphrase from `WIFI_SSID` / `WIFI_PASSWORD` in a mode-0600
     /// dotenv file (a firmware project's `.env`), so they stay off the command line. Other keys
@@ -1518,6 +1518,12 @@ mod avd_network_tests {
         assert_eq!(p.ahead(60_000_000_000, Duration::from_secs(120)), None);
         assert_eq!(p.virtual_ns, 60_000_000_000);
         assert_eq!(p.ahead(60_010_000_000, Duration::from_millis(1)), Some(Duration::from_millis(9)));
+    }
+
+    #[test]
+    fn default_wifi_is_protected_and_explicit_open_networks_still_work() {
+        assert_eq!(wifi_spec(&parse(&[])).unwrap(), "ssid=esp32sim,psk=12345678");
+        assert_eq!(wifi_spec(&parse(&["--wifi", "ssid=open"])).unwrap(), "ssid=open");
     }
 
     #[test]

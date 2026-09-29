@@ -282,13 +282,17 @@ private struct ControlsSectionPicker: View {
 private struct WifiEnvRow: View {
     let avd: String
     var running = false
-    @State private var ssid = ""
-    @State private var password = ""
+    @State private var ssid = "esp32sim"
+    @State private var password = "12345678"
     @State private var feedback = ""
     private var manager: ManagerModel { ManagerModel.shared }
     private var path: String? { manager.avds.first { $0.id == avd }?.wifiEnv }
 
     var body: some View {
+        if path == nil {
+            Text("Default Wi-Fi: esp32sim · WPA2 password: 12345678")
+                .font(.callout).textSelection(.enabled)
+        }
         DisclosureGroup("Simulated Wi-Fi network") {
             Text("For firmware connecting to Wi-Fi. The device's setup hotspot password goes in Device setup hotspot above.")
                 .font(.caption).foregroundStyle(.secondary)
@@ -311,8 +315,8 @@ private struct WifiEnvRow: View {
                     Button("Use default network") {
                         Task {
                             await manager.setWifiEnv(nil, avd: avd)
-                            ssid = ""; password = ""
-                            feedback = running ? "Default selected. Stop and start to apply." : "Default network: esp32sim (open)."
+                            ssid = "esp32sim"; password = "12345678"
+                            feedback = running ? "Default selected. Stop and start to apply." : "Default network: esp32sim, password: 12345678."
                         }
                     }
                 }
@@ -325,7 +329,8 @@ private struct WifiEnvRow: View {
             }
         }
         .task(id: path) {
-            guard let path, let text = try? String(contentsOfFile: path, encoding: .utf8) else { return }
+            guard let path else { ssid = "esp32sim"; password = "12345678"; return }
+            guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { return }
             for line in text.components(separatedBy: .newlines) {
                 let parts = line.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "export ", with: "", options: .anchored).split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
                 guard parts.count == 2 else { continue }

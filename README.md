@@ -27,6 +27,9 @@ On first boot, enter the hotspot password shown on its screen in Controls → Ne
 setup hotspot at the top of the Network tab. Open the browser URL there and pair with the code on the screen. The password
 must be entered again after the device stops. This is community firmware, not a factory image.
 
+The default simulated Wi-Fi is **esp32sim**, protected with WPA2 password **12345678**.
+Use these credentials in the firmware's Wi-Fi setup page.
+
 For firmware joining a Wi-Fi network, expand **Simulated Wi-Fi network** in Controls → Network
 and enter the Wi-Fi name and password directly. Save applies at the next device start;
 importing a `.env` file is optional. These settings belong to the simulated access point,
