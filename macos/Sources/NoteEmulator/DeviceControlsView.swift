@@ -166,28 +166,37 @@ private struct NetworkTab: View {
     let model: DeviceModel
     @State var avd: String?
     @State private var hotspotPassword = ""
-    @State private var passwordApplied = false
+    @State private var passwordStatus = ""
+    @State private var passwordFailed = false
 
     var body: some View {
         Form {
             if model.networkActive == "user" || model.networkActive == "setup" {
-                Section("Device setup hotspot") {
-                    Text("If the device shows a Wi-Fi password, enter it here so this Mac can open its setup page. This password applies until the device stops.")
+                Section("Emulator access point") {
+                    Text("Use this option to access the emulator’s access point. If it needs a password (shown on the device’s screen), enter it below.")
                         .font(.callout).foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Password shown on the device")
-                        SecureField("Enter the displayed hotspot password", text: $hotspotPassword)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    Button("Apply Password") {
-                        Task {
-                            passwordApplied = await model.connectSetupHotspot(password: hotspotPassword)
-                            if passwordApplied { hotspotPassword = "" }
+                    TextField("Password shown on the device (if required)", text: $hotspotPassword)
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
+                        .task(id: hotspotPassword) {
+                            passwordStatus = ""
+                            passwordFailed = false
+                            let password = hotspotPassword
+                            guard (8...63).contains(password.utf8.count) else { return }
+                            do { try await Task.sleep(for: .milliseconds(700)) }
+                            catch { return }
+                            guard !Task.isCancelled else { return }
+                            let applied = await model.connectSetupHotspot(password: password)
+                            guard !Task.isCancelled else { return }
+                            passwordFailed = !applied
+                            passwordStatus = applied ? "Password applied automatically." : model.lastError
                         }
+                    Text("Applies automatically when you stop typing.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    if !passwordStatus.isEmpty {
+                        Text(passwordStatus).font(.caption)
+                            .foregroundStyle(passwordFailed ? Color.red : Color.secondary)
                     }
-                    .disabled(!(8...63).contains(hotspotPassword.utf8.count))
-                    if !model.lastError.isEmpty { Text(model.lastError).font(.caption).foregroundStyle(.red) }
-                    if passwordApplied { Text("Password applied. Open the browser URL below and use the device's pairing code.").font(.caption) }
                 }
             }
             Section("Mode") {
@@ -294,7 +303,7 @@ private struct WifiEnvRow: View {
                 .font(.callout).textSelection(.enabled)
         }
         DisclosureGroup("Simulated Wi-Fi network") {
-            Text("For firmware connecting to Wi-Fi. The device's setup hotspot password goes in Device setup hotspot above.")
+            Text("For firmware connecting to Wi-Fi. The device's setup hotspot password goes in Emulator access point above.")
                 .font(.caption).foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 6) {
                 Text("Wi-Fi name (SSID)")
@@ -388,7 +397,7 @@ private struct StoppedDeviceControls: View {
                 switch selectedSection {
                 case 1:
                     Form {
-                        Section("Device setup hotspot") {
+                        Section("Emulator access point") {
                             Text("Start this device to enter the hotspot password shown on its display.")
                                 .foregroundStyle(.secondary)
                         }
