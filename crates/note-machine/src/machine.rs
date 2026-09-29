@@ -669,18 +669,18 @@ impl NoteMachine {
             .unwrap_or(self.mac)
     }
 
-    /// Drop one listener (the address `listen_forward` or `adopt_forward` returned).
+    /// Drop one listener: the address `listen_forward`, `adopt_forward`, `listen_softap` or
+    /// `adopt_softap` returned. A SoftAP listener lives in the relay, not the station NAT.
     pub fn close_forward(&mut self, addr: SocketAddr) {
-        let frames = self
-            .m
-            .bus
-            .periph
-            .wifi
-            .net
-            .as_mut()
-            .map(|net| net.close_forward(addr))
-            .unwrap_or_default();
-        self.m.bus.periph.wifi.eth_rx.extend(frames);
+        let softap = self.host_endpoints.iter().any(|lease| lease.addr == addr && lease.softap);
+        let wifi = &mut self.m.bus.periph.wifi;
+        if softap {
+            let frames = wifi.relay.as_mut().map(|relay| relay.close_bound(addr)).unwrap_or_default();
+            wifi.peer_tx.extend(frames);
+        } else {
+            let frames = wifi.net.as_mut().map(|net| net.close_forward(addr)).unwrap_or_default();
+            wifi.eth_rx.extend(frames);
+        }
         self.host_endpoints.retain(|lease| lease.addr != addr);
         self.adopted_endpoints.retain(|(lease, _)| lease.addr != addr);
     }

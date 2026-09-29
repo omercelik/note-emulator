@@ -71,6 +71,12 @@ impl SoftApRelay {
 
     pub fn host_socket_count(&self) -> usize { self.nat.host_socket_count() }
 
+    /// Drop the listener bound to `addr` and RST only its connections; returns the RSTs
+    /// for the guest AP. Other listeners and flows are left alone.
+    pub fn close_bound(&mut self, addr: SocketAddr) -> Vec<Vec<u8>> {
+        self.nat.close_bound(addr)
+    }
+
     fn arp(&mut self, payload: &[u8], src: &[u8; 6]) -> Vec<Vec<u8>> {
         if payload.len() < 28 || u16::from_be_bytes([payload[6], payload[7]]) != 1 { return Vec::new(); }
         if payload[24..28] != self.ip { return Vec::new(); }
@@ -201,5 +207,31 @@ mod tests {
         let mut got = Vec::new();
         client.read_to_end(&mut got).unwrap();
         assert_eq!(got, response);
+    }
+
+    #[test]
+    fn closing_one_listener_resets_its_browser_and_frees_the_address() {
+        let mut relay = SoftApRelay::new(PEER);
+        let closed = relay.listen((Ipv4Addr::LOCALHOST, 0).into(), 80).unwrap();
+        let kept = relay.listen((Ipv4Addr::LOCALHOST, 0).into(), 80).unwrap();
+        relay.set_lease(PEER_IP, AP, AP_IP);
+        let browser = TcpStream::connect(closed).unwrap();
+        let mut syn = Vec::new();
+        for i in 0..50 {
+            syn = relay.poll((i as u64) * 20_000);
+            if !syn.is_empty() { break; }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert_eq!(syn.len(), 1, "the browser became a flow");
+        let before = relay.host_socket_count();
+        let rst = relay.close_bound(closed);
+        assert_eq!(rst.len(), 1, "one RST, for that browser only");
+        assert_eq!(&rst[0][0..6], &AP);
+        assert_ne!(rst[0][34 + 13] & 0x04, 0, "RST flag");
+        assert_eq!(relay.host_socket_count(), before - 1, "only the listener is gone; the flow is closed");
+        drop(browser);
+        std::net::TcpListener::bind(closed).expect("the address is free again");
+        assert!(relay.close_bound(closed).is_empty(), "closing twice is a no-op");
+        TcpStream::connect(kept).expect("the other listener still accepts");
     }
 }

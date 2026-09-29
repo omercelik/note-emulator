@@ -1039,6 +1039,25 @@ mod tests {
     }
 
     #[test]
+    fn closing_a_helper_listener_frees_it_in_either_mode() {
+        // note-emu's helper-disconnect path: `close_forward(bound)` must release the listener
+        // whether it was adopted by the station NAT or the SoftAP relay.
+        for softap in [false, true] {
+            let mut machine = NoteMachine::bare(&profile("note4c"));
+            let helper = loop {
+                let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+                if !forbidden_port(listener.local_addr().unwrap().port()) { break listener; }
+            };
+            let addr = if softap { machine.adopt_softap(helper, 80) } else { machine.adopt_forward(helper, 80) }.unwrap();
+            assert!(TcpListener::bind(addr).is_err(), "adopted listener is live");
+            machine.close_forward(addr);
+            assert!(TcpListener::bind(addr).is_ok(), "softap={softap}: close_forward released the listener");
+            let report = machine.restore_snapshot(&machine.save_snapshot(FW).unwrap(), FW).unwrap();
+            assert_eq!(report.host_sockets, 0, "softap={softap}: a closed listener is not brought back by restore");
+        }
+    }
+
+    #[test]
     fn softap_listener_is_counted_and_rebound() {
         let mut machine = NoteMachine::bare(&profile("note4c"));
         let addr = loop {
