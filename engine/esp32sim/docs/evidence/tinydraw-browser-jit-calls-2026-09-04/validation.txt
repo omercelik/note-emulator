@@ -1,0 +1,40 @@
+Actual-WASM differential tests:
+  tools/wasm-jit-test.sh
+  PASS: 18,189 cases; 15,889 compiled modules released.
+  Includes 11,664 new call/return cases: all twelve terminal call/return opcodes,
+  three window bases, WOE/EXCM modes, present/absent windows, all return-frame
+  increments, three entry positions and three budgets. Tests cover dirty implicit
+  return registers, helper state preservation, overflow/underflow and illegal calls.
+  Indirect-call targets also alias their return-address destination.
+  Includes 1,458 block-entry guard cases spanning active/inactive loops, loop
+  ends inside/outside/on block boundaries, window collisions, budgets and entries.
+  Eligibility tests reject calls/returns inside a block and single-instruction blocks.
+
+Firmware smoke tests:
+  node tools/wasm-test.mjs hello c3-hello c6-hello c6-energy-scan panel
+  PASS: all five manifests and the synthetic shared-memory JIT handoff.
+
+Static checks:
+  cargo clippy --target wasm32-unknown-unknown -p esp32sim-wasm \
+    --features jit-tests,jit-profile -- -D warnings
+  PASS. The sandbox's SDK/linker emitted environment warnings about confstr;
+  no Rust source diagnostics failed the check.
+  git diff --check: PASS.
+
+Instrumentation isolation:
+  WebAssembly.Module.imports(before.wasm) and imports(after.wasm) contain no
+  host_profile_now; profile.wasm does contain it. Timed comparison binaries
+  were built without jit-profile or jit-tests.
+
+Post-review root validation:
+  Workspace-local TMPDIR was required for sandboxed golden temporary files.
+  cargo test --release --workspace -- --include-ignored --skip external_
+  PASS: 167 tests, including the golden-output suite and halt/console regression.
+  tools/wasm-jit-test.sh
+  PASS: 18,189 cases; 15,889 generated modules released.
+  tools/wasm-build.sh
+  node tools/wasm-test.mjs hello atech atech-sid panel panel-sid c3-hello c6-hello c6-energy-scan
+  PASS: all eight manifests with unconditional expected-console assertions.
+  cargo clippy --workspace --all-targets -- -D warnings
+  cargo clippy -p esp32sim-wasm --target wasm32-unknown-unknown --features jit-tests,jit-profile -- -D warnings
+  PASS: both checks.

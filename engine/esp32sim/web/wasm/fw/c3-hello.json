@@ -1,0 +1,12 @@
+{
+ "board": "esp32c3",
+ "flash_mb": 4,
+ "psram_mb": 0,
+ "files": {
+  "rom": "esp32c3_rev3_rom.elf",
+  "bootloader": "public/c3-hello-bootloader.bin",
+  "ptable": "public/c3-hello-ptable.bin",
+  "app": "public/c3-hello_world.bin"
+ },
+ "_note": "ESP32-C3 (RISC-V). Console-only: real mask ROM, real 2nd-stage bootloader, FreeRTOS, app_main, esp_restart, repeat."
+}

@@ -1,0 +1,370 @@
+{
+  "runs": {
+    "baseline": [
+      {
+        "capture": "final-drawing-baseline-1",
+        "startupMs": 142305.37,
+        "strokesCommitted": 3,
+        "movementPoints": 24,
+        "movementResponded": 24,
+        "downToCanvasMs": [
+          70.69,
+          53.695,
+          58.59
+        ],
+        "movementToCanvasMs": [
+          71.85,
+          48.875,
+          62.855,
+          65.635,
+          64.74,
+          52.18,
+          56.085,
+          55.43,
+          58.565,
+          62.115,
+          60.235,
+          62.025,
+          57.915,
+          57.255,
+          53.91,
+          57.56,
+          70.69,
+          67.77,
+          62.415,
+          64.295,
+          61.735,
+          60.575,
+          58.29,
+          52.575
+        ],
+        "upToCommitReportMs": [
+          53.585,
+          44.01,
+          88.205
+        ],
+        "upToLastCanvasChangeMs": [
+          589.29,
+          412.655,
+          446.39
+        ]
+      },
+      {
+        "capture": "final-drawing-baseline-2",
+        "startupMs": 137232.43,
+        "strokesCommitted": 3,
+        "movementPoints": 24,
+        "movementResponded": 24,
+        "downToCanvasMs": [
+          72.22,
+          53.08,
+          46.5
+        ],
+        "movementToCanvasMs": [
+          72.7,
+          69.215,
+          58.71,
+          56.735,
+          60.895,
+          57.65,
+          58.945,
+          52.595,
+          56.29,
+          63.365,
+          60.575,
+          55.76,
+          59.975,
+          54.415,
+          51.605,
+          54.7,
+          54.415,
+          61.945,
+          57.835,
+          57.07,
+          50.955,
+          51.085,
+          47.265,
+          54.365
+        ],
+        "upToCommitReportMs": [
+          41.565,
+          26.095,
+          44.325
+        ],
+        "upToLastCanvasChangeMs": [
+          559.485,
+          395.105,
+          401.805
+        ]
+      },
+      {
+        "capture": "final-drawing-baseline-3",
+        "startupMs": 136617.045,
+        "strokesCommitted": 3,
+        "movementPoints": 24,
+        "movementResponded": 24,
+        "downToCanvasMs": [
+          63.135,
+          42.845,
+          60.125
+        ],
+        "movementToCanvasMs": [
+          67.02,
+          59.535,
+          61.21,
+          61.395,
+          59.865,
+          56.96,
+          46.655,
+          47.79,
+          56.355,
+          59.33,
+          50.845,
+          73.005,
+          67.435,
+          65.485,
+          45.865,
+          68.83,
+          49.77,
+          49.435,
+          46.105,
+          72.51,
+          69.565,
+          46.78,
+          64.85,
+          64.01
+        ],
+        "upToCommitReportMs": [
+          126.01,
+          70.015,
+          50.875
+        ],
+        "upToLastCanvasChangeMs": [
+          558.095,
+          409.355,
+          407.81
+        ]
+      }
+    ],
+    "combined": [
+      {
+        "capture": "final-drawing-combined-1",
+        "startupMs": 120774.71,
+        "strokesCommitted": 3,
+        "movementPoints": 24,
+        "movementResponded": 24,
+        "downToCanvasMs": [
+          54.05,
+          35.085,
+          34.66
+        ],
+        "movementToCanvasMs": [
+          50.735,
+          42.2,
+          47.265,
+          53.015,
+          57.28,
+          51.24,
+          44.555,
+          45.055,
+          42.985,
+          47.685,
+          49.39,
+          50.325,
+          49.1,
+          48.355,
+          41.1,
+          42.82,
+          43.135,
+          39.33,
+          46.395,
+          41.495,
+          37.61,
+          43.9,
+          38.765,
+          36.69
+        ],
+        "upToCommitReportMs": [
+          69.375,
+          38.835,
+          34.57
+        ],
+        "upToLastCanvasChangeMs": [
+          619.705,
+          455.005,
+          430.725
+        ]
+      },
+      {
+        "capture": "final-drawing-combined-2",
+        "startupMs": 120535.64,
+        "strokesCommitted": 3,
+        "movementPoints": 24,
+        "movementResponded": 24,
+        "downToCanvasMs": [
+          70.2,
+          51.245,
+          45.275
+        ],
+        "movementToCanvasMs": [
+          51.265,
+          40.68,
+          33.52,
+          54.42,
+          63.145,
+          38.25,
+          54.595,
+          27.545,
+          37.94,
+          54.905,
+          38.61,
+          55.24,
+          34.835,
+          48.28,
+          52.275,
+          30.405,
+          32.505,
+          32.33,
+          27.21,
+          50.45,
+          46.12,
+          22.425,
+          41.94,
+          42.26
+        ],
+        "upToCommitReportMs": [
+          42.83,
+          48.405,
+          23.925
+        ],
+        "upToLastCanvasChangeMs": [
+          584.55,
+          411.015,
+          392.37
+        ]
+      },
+      {
+        "capture": "final-drawing-combined-3",
+        "startupMs": 120276.025,
+        "strokesCommitted": 3,
+        "movementPoints": 24,
+        "movementResponded": 24,
+        "downToCanvasMs": [
+          41.405,
+          29.31,
+          48.55
+        ],
+        "movementToCanvasMs": [
+          55.925,
+          41.6,
+          38.73,
+          55.79,
+          69.185,
+          50.195,
+          42.745,
+          492.82,
+          61.71,
+          41.965,
+          39.445,
+          65.44,
+          57.35,
+          53.085,
+          48.28,
+          65.075,
+          37.825,
+          30.765,
+          54.84,
+          27.975,
+          27.535,
+          49.615,
+          48.885,
+          39.215
+        ],
+        "upToCommitReportMs": [
+          109.915,
+          39.86,
+          27.15
+        ],
+        "upToLastCanvasChangeMs": [
+          591.915,
+          425.305,
+          439.225
+        ]
+      }
+    ]
+  },
+  "metrics": {
+    "downToCanvasMs": {
+      "baselineRunMedians": [
+        58.59,
+        53.08,
+        60.125
+      ],
+      "combinedRunMedians": [
+        35.085,
+        51.245,
+        41.405
+      ],
+      "baselineMedian": 58.59,
+      "combinedMedian": 41.405,
+      "lessTimePercent": 29.330943847072877
+    },
+    "movementToCanvasMs": {
+      "baselineRunMedians": [
+        60.405,
+        56.9025,
+        59.7
+      ],
+      "combinedRunMedians": [
+        44.805,
+        41.31,
+        49.25
+      ],
+      "baselineMedian": 59.7,
+      "combinedMedian": 44.805,
+      "lessTimePercent": 24.94974874371859
+    },
+    "upToCommitReportMs": {
+      "baselineRunMedians": [
+        53.585,
+        41.565,
+        70.015
+      ],
+      "combinedRunMedians": [
+        38.835,
+        42.83,
+        39.86
+      ],
+      "baselineMedian": 53.585,
+      "combinedMedian": 39.86,
+      "lessTimePercent": 25.61351124381823
+    },
+    "upToLastCanvasChangeMs": {
+      "baselineRunMedians": [
+        446.39,
+        401.805,
+        409.355
+      ],
+      "combinedRunMedians": [
+        455.005,
+        411.015,
+        439.225
+      ],
+      "baselineMedian": 409.355,
+      "combinedMedian": 439.225,
+      "lessTimePercent": -7.296845036704092
+    }
+  },
+  "startupMs": {
+    "baseline": 137232.43,
+    "combined": 120535.64
+  },
+  "worstMovementMs": {
+    "baseline": 73.005,
+    "combined": 492.82
+  },
+  "endpoint": "Input queued on page to changed pixels within four pixels of its position submitted to canvas. Lift report is firmware console arrival, not display completion. Not optical presentation.",
+  "aggregation": "Median of three per-run medians. Each run has three strokes and 24 movements. All individual timing samples retained.",
+  "limit": "One combined sample measured492.820ms; these data do not establish improved worst-case latency. Last canvas change after lift is not proof of final drawing completion.",
+  "rawCaptureStorage": "Local ignored target/browser-speed-2026-09-05. Frames, console streams and screenshots are not committed."
+}

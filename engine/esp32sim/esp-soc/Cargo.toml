@@ -1,0 +1,16 @@
+[package]
+name = "esp-soc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "The machine around an Espressif SoC: scheduler, device time, console, scripts, web push, loaders, boards — generic over the chip"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_derive = { version = "1", features = ["deserialize_in_place"] }
+emu-core = { path = "../emu-core" }
+esp-periph = { path = "../esp-periph" }
+libc = "0.2"
+
+[features]
+wasm-cpu-profile = []

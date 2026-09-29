@@ -1,0 +1,2 @@
+{ "board": "none", "flash_mb": 8, "psram_mb": 2,
+  "files": { "rom": "esp32s3_rev0_rom.elf", "bootloader": "public/hello-bootloader.bin", "ptable": "public/hello-ptable.bin", "app": "public/hello_world.bin" } }

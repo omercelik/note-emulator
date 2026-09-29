@@ -1,0 +1,14 @@
+[package]
+name = "esp32sim-wasm-jit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "WebAssembly code generation for receipt-priced ESP32-S3 LX7 blocks"
+
+[dependencies]
+emu-core = { path = "../emu-core" }
+esp32s3 = { path = "../esp32s3" }
+xtensa-lx7 = { path = "../xtensa-lx7" }
+
+[dev-dependencies]
+esp-soc = { path = "../esp-soc" }

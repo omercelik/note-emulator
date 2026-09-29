@@ -1,0 +1,4 @@
+# SID player: start Commando, turn the volume up a little, then button 1 switches to Wizball
+3.0   serial {"action":"play_sid","value":"0"}
+8.0   knob cw 2
+18.0  press btn1 150

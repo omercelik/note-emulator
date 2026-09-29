@@ -1,0 +1,433 @@
+{
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/152.0.0.0 Safari/537.36",
+    "crossOriginIsolated": true
+  },
+  "inputs": [
+    {
+      "at": 375002.3299999982,
+      "x": 80,
+      "y": 140,
+      "down": true,
+      "kind": "down",
+      "changedFrame": 104,
+      "canvasSubmittedAt": 375067,
+      "inputToCanvasMs": 64.67000000178814
+    },
+    {
+      "at": 375253.2800000012,
+      "x": 95,
+      "y": 140,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 105,
+      "canvasSubmittedAt": 375322.3849999979,
+      "inputToCanvasMs": 69.10499999672174
+    },
+    {
+      "at": 375354.0099999979,
+      "x": 110,
+      "y": 140,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 106,
+      "canvasSubmittedAt": 375416.6700000018,
+      "inputToCanvasMs": 62.6600000038743
+    },
+    {
+      "at": 375454.2349999994,
+      "x": 125,
+      "y": 140,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 107,
+      "canvasSubmittedAt": 375514.9799999967,
+      "inputToCanvasMs": 60.74499999731779
+    },
+    {
+      "at": 375554.87999999523,
+      "x": 140,
+      "y": 140,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 108,
+      "canvasSubmittedAt": 375624.3200000003,
+      "inputToCanvasMs": 69.4400000050664
+    },
+    {
+      "at": 375656.2849999964,
+      "x": 155,
+      "y": 140,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 109,
+      "canvasSubmittedAt": 375711.6349999979,
+      "inputToCanvasMs": 55.350000001490116
+    },
+    {
+      "at": 375757.9450000003,
+      "x": 170,
+      "y": 140,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 110,
+      "canvasSubmittedAt": 375810.625,
+      "inputToCanvasMs": 52.67999999970198
+    },
+    {
+      "at": 375858.9949999973,
+      "x": 185,
+      "y": 140,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 111,
+      "canvasSubmittedAt": 375912.1400000006,
+      "inputToCanvasMs": 53.145000003278255
+    },
+    {
+      "at": 375960.44999999553,
+      "x": 200,
+      "y": 140,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 112,
+      "canvasSubmittedAt": 376010.8849999979,
+      "inputToCanvasMs": 50.435000002384186
+    },
+    {
+      "at": 376062.2299999967,
+      "x": 200,
+      "y": 140,
+      "down": false,
+      "kind": "up"
+    },
+    {
+      "at": 378063.6150000021,
+      "x": 80,
+      "y": 185,
+      "down": true,
+      "kind": "down",
+      "changedFrame": 115,
+      "canvasSubmittedAt": 378116.37999999523,
+      "inputToCanvasMs": 52.764999993145466
+    },
+    {
+      "at": 378314.2299999967,
+      "x": 95,
+      "y": 185,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 116,
+      "canvasSubmittedAt": 378382.6499999985,
+      "inputToCanvasMs": 68.42000000178814
+    },
+    {
+      "at": 378415.2849999964,
+      "x": 110,
+      "y": 185,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 117,
+      "canvasSubmittedAt": 378471.9900000021,
+      "inputToCanvasMs": 56.70500000566244
+    },
+    {
+      "at": 378516.4200000018,
+      "x": 125,
+      "y": 185,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 118,
+      "canvasSubmittedAt": 378572.0300000012,
+      "inputToCanvasMs": 55.60999999940395
+    },
+    {
+      "at": 378617.62999999523,
+      "x": 140,
+      "y": 185,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 119,
+      "canvasSubmittedAt": 378677.0150000006,
+      "inputToCanvasMs": 59.38500000536442
+    },
+    {
+      "at": 378719.2650000006,
+      "x": 155,
+      "y": 185,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 120,
+      "canvasSubmittedAt": 378775.7400000021,
+      "inputToCanvasMs": 56.475000001490116
+    },
+    {
+      "at": 378820.8699999973,
+      "x": 170,
+      "y": 185,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 121,
+      "canvasSubmittedAt": 378873.0349999964,
+      "inputToCanvasMs": 52.16499999910593
+    },
+    {
+      "at": 378922.0649999976,
+      "x": 185,
+      "y": 185,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 122,
+      "canvasSubmittedAt": 378976.7749999985,
+      "inputToCanvasMs": 54.71000000089407
+    },
+    {
+      "at": 379023.6850000024,
+      "x": 200,
+      "y": 185,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 123,
+      "canvasSubmittedAt": 379076.2650000006,
+      "inputToCanvasMs": 52.57999999821186
+    },
+    {
+      "at": 379124.82499999553,
+      "x": 200,
+      "y": 185,
+      "down": false,
+      "kind": "up"
+    },
+    {
+      "at": 381125.6950000003,
+      "x": 80,
+      "y": 230,
+      "down": true,
+      "kind": "down",
+      "changedFrame": 126,
+      "canvasSubmittedAt": 381169.6049999967,
+      "inputToCanvasMs": 43.90999999642372
+    },
+    {
+      "at": 381376.2849999964,
+      "x": 95,
+      "y": 230,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 127,
+      "canvasSubmittedAt": 381429.87999999523,
+      "inputToCanvasMs": 53.59499999880791
+    },
+    {
+      "at": 381477.2650000006,
+      "x": 110,
+      "y": 230,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 128,
+      "canvasSubmittedAt": 381530.8900000006,
+      "inputToCanvasMs": 53.625
+    },
+    {
+      "at": 381578.4450000003,
+      "x": 125,
+      "y": 230,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 129,
+      "canvasSubmittedAt": 381636.5649999976,
+      "inputToCanvasMs": 58.11999999731779
+    },
+    {
+      "at": 381679.9799999967,
+      "x": 140,
+      "y": 230,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 130,
+      "canvasSubmittedAt": 381735.00499999523,
+      "inputToCanvasMs": 55.024999998509884
+    },
+    {
+      "at": 381781.6400000006,
+      "x": 155,
+      "y": 230,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 131,
+      "canvasSubmittedAt": 381834.0150000006,
+      "inputToCanvasMs": 52.375
+    },
+    {
+      "at": 381883.2349999994,
+      "x": 170,
+      "y": 230,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 132,
+      "canvasSubmittedAt": 381933.87999999523,
+      "inputToCanvasMs": 50.644999995827675
+    },
+    {
+      "at": 381984.3849999979,
+      "x": 185,
+      "y": 230,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 133,
+      "canvasSubmittedAt": 382034.3449999988,
+      "inputToCanvasMs": 49.96000000089407
+    },
+    {
+      "at": 382086.2049999982,
+      "x": 200,
+      "y": 230,
+      "down": true,
+      "kind": "move",
+      "changedFrame": 134,
+      "canvasSubmittedAt": 382132.3999999985,
+      "inputToCanvasMs": 46.19500000029802
+    },
+    {
+      "at": 382187.9849999994,
+      "x": 200,
+      "y": 230,
+      "down": false,
+      "kind": "up"
+    }
+  ],
+  "strokes": [
+    {
+      "index": 0,
+      "x": 80,
+      "y": 140,
+      "quietBeforeMs": 6257.3450000062585,
+      "serialStart": 72405,
+      "pending": [],
+      "inputStart": 0,
+      "downAt": 375002.3299999982,
+      "firstChangedFrame": 104,
+      "inputToFrameMs": 60.66499999910593,
+      "inputToCanvasMs": 64.67000000178814,
+      "lastStrokeCanvasAt": 376602.9849999994,
+      "firstMoveAt": 375253.2800000012,
+      "upAt": 376062.2299999967,
+      "commitReportedAt": 376164.1400000006,
+      "serial": "TINYDRAW_LIVE_STROKE revision=4599 operations=103 samples=2715 append_us=5 publication=operation refresh_compose_us=0 refresh_complete_us=0 ink_samples=10 read_submit_avg_us=566 read_submit_max_us=872 read_complete_avg_us=914 read_complete_max_us=1303 submit_over_16ms=0 complete_over_33ms=0 presentation_failures=0 poll_max_us=5016 touch_errors=0 touch_overflows=0 touch_resyncs=0 touch_moves_coalesced=0 touch_events=1061 touch_down=1 touch_up=1 touch_events_ge_8ms=0 touch_event_age_max_us=317 free_psram=945552 largest_psram=933888 authority_match=0\r\nTINYDRAW_LIVE_STROKE_DONE committed=1 refresh=1 commit_failed=0\r\nTINYDRAW_LIFT_BASELINE id=1 finish_preview_us=953 builder_finish_us=3 append_us=5 publication=operation refresh_wall_us=1 refresh_x0=75 refresh_y0=131 refresh_x1=209 refresh_y1=149 refresh_compose_us=0 refresh_first_submit_us=0 refresh_first_complete_us=0 refresh_transfer_wait_us=0 stroke_logging_us=29 detected_to_poll_start_us=1007 detected_to_poll_complete_us=1009 poll_read_us=2 unattributed_tail_us=16 reports_dropped=0 committed=1 refresh=1 commit_failed=0\r\nTINYDRAW_AUTOSAVE_COMMIT sequence=2 bytes=4096 offset=24576 seal_us=21 io_us=3978 worker_us=3999\r\nTINYDRAW_LIVE_PRESENT kind=history-dock zoom=25 x=0 y=0 compose_us=0 scroll_us=0 exposed_compose_us=0 chrome_us=1095 chrome_prepare_us=655 chrome_stage_us=440 read_submit_us=6342 read_complete_us=7247 transfer_wait_us=910 tile_pixels=0 uniform_pixels=0 overview_pixels=0 fallback_pixels=0 resident_tiles=0 fallback_tiles=0 pushes=1 tear_wait_us=0 tear_edge_isr_to_resume_us=0 tear_edge_observed=0 tear_edge_wait_resumed=0 tear_edge_timeout=0 tear_heal_attempted=0 tear_heal_command_sent=0 presentation_experiment=boundary-top-sweep te_edge=rising clock_mhz=40 frame_reused=0 pass=1\r\nTINYDRAW_LIVE_DRAIN ops=1 slices=4 restarts=0 max_pending=1 total_us=5452 max_slice_us=1566 failures=0 swap_wall_us=4838 swap_pass=1\r\nTINYDRAW_LIVE_LEDGER site=drain renders=140 cold=18 damage=122 evict=0 stale=0 unexplained=0 total_renders=140 unique=18 amplification=7.778\r\nTINYDRAW_LIVE_SETTLE zoom=25 tiles=42 no_ink=33 slices=577 total_us=51910 max_slice_us=291 work=401598 failures=0 permanent_failures=0\r\n",
+      "committed": true,
+      "upToCommitReportMs": 101.9100000038743,
+      "upToLastCanvasChangeMs": 540.7550000026822,
+      "doneAt": 378063.6000000015
+    },
+    {
+      "index": 1,
+      "x": 80,
+      "y": 185,
+      "quietBeforeMs": 1461.9949999973178,
+      "serialStart": 74583,
+      "pending": [],
+      "inputStart": 10,
+      "downAt": 378063.6150000021,
+      "firstChangedFrame": 115,
+      "inputToFrameMs": 51.309999994933605,
+      "inputToCanvasMs": 52.764999993145466,
+      "lastStrokeCanvasAt": 379541.1150000021,
+      "firstMoveAt": 378314.2299999967,
+      "upAt": 379124.82499999553,
+      "commitReportedAt": 379202.674999997,
+      "serial": "TINYDRAW_LIVE_STROKE revision=4600 operations=104 samples=2724 append_us=5 publication=operation refresh_compose_us=0 refresh_complete_us=0 ink_samples=10 read_submit_avg_us=738 read_submit_max_us=1191 read_complete_avg_us=1086 read_complete_max_us=1612 submit_over_16ms=0 complete_over_33ms=0 presentation_failures=0 poll_max_us=8936 touch_errors=0 touch_overflows=0 touch_resyncs=0 touch_moves_coalesced=0 touch_events=1081 touch_down=1 touch_up=1 touch_events_ge_8ms=0 touch_event_age_max_us=624 free_psram=945552 largest_psram=933888 authority_match=0\r\nTINYDRAW_LIVE_STROKE_DONE committed=1 refresh=1 commit_failed=0\r\nTINYDRAW_LIFT_BASELINE id=2 finish_preview_us=1271 builder_finish_us=2 append_us=5 publication=operation refresh_wall_us=0 refresh_x0=75 refresh_y0=176 refresh_x1=209 refresh_y1=194 refresh_compose_us=0 refresh_first_submit_us=0 refresh_first_complete_us=0 refresh_transfer_wait_us=0 stroke_logging_us=22 detected_to_poll_start_us=1317 detected_to_poll_complete_us=1319 poll_read_us=2 unattributed_tail_us=17 reports_dropped=0 committed=1 refresh=1 commit_failed=0\r\nTINYDRAW_AUTOSAVE_COMMIT sequence=3 bytes=4096 offset=28672 seal_us=21 io_us=3978 worker_us=3999\r\nTINYDRAW_LIVE_DRAIN ops=1 slices=4 restarts=0 max_pending=1 total_us=5683 max_slice_us=1566 failures=0 swap_wall_us=4093 swap_pass=1\r\nTINYDRAW_LIVE_LEDGER site=drain renders=0 cold=0 damage=0 evict=0 stale=0 unexplained=0 total_renders=140 unique=18 amplification=7.778\r\nTINYDRAW_LIVE_SETTLE zoom=25 tiles=42 no_ink=29 slices=663 total_us=56654 max_slice_us=291 work=429666 failures=0 permanent_failures=0\r\n",
+      "committed": true,
+      "upToCommitReportMs": 77.85000000149012,
+      "upToLastCanvasChangeMs": 416.2900000065565,
+      "doneAt": 381125.6899999976
+    },
+    {
+      "index": 2,
+      "x": 80,
+      "y": 230,
+      "quietBeforeMs": 1585.7950000017881,
+      "serialStart": 76176,
+      "pending": [],
+      "inputStart": 20,
+      "downAt": 381125.6950000003,
+      "firstChangedFrame": 126,
+      "inputToFrameMs": 42.61999999731779,
+      "inputToCanvasMs": 43.90999999642372,
+      "lastStrokeCanvasAt": 382589.3449999988,
+      "firstMoveAt": 381376.2849999964,
+      "upAt": 382187.9849999994,
+      "commitReportedAt": 382262.6649999991,
+      "serial": "TINYDRAW_LIVE_STROKE revision=4601 operations=105 samples=2733 append_us=6 publication=operation refresh_compose_us=0 refresh_complete_us=0 ink_samples=10 read_submit_avg_us=566 read_submit_max_us=872 read_complete_avg_us=914 read_complete_max_us=1303 submit_over_16ms=0 complete_over_33ms=0 presentation_failures=0 poll_max_us=6630 touch_errors=0 touch_overflows=0 touch_resyncs=0 touch_moves_coalesced=0 touch_events=1081 touch_down=1 touch_up=1 touch_events_ge_8ms=0 touch_event_age_max_us=317 free_psram=945552 largest_psram=933888 authority_match=0\r\nTINYDRAW_LIVE_STROKE_DONE committed=1 refresh=1 commit_failed=0\r\nTINYDRAW_LIFT_BASELINE id=3 finish_preview_us=954 builder_finish_us=2 append_us=6 publication=operation refresh_wall_us=0 refresh_x0=75 refresh_y0=221 refresh_x1=209 refresh_y1=239 refresh_compose_us=0 refresh_first_submit_us=0 refresh_first_complete_us=0 refresh_transfer_wait_us=0 stroke_logging_us=29 detected_to_poll_start_us=1006 detected_to_poll_complete_us=1008 poll_read_us=2 unattributed_tail_us=15 reports_dropped=0 committed=1 refresh=1 commit_failed=0\r\nTINYDRAW_AUTOSAVE_COMMIT sequence=4 bytes=4096 offset=32768 seal_us=21 io_us=3978 worker_us=3999\r\nTINYDRAW_LIVE_DRAIN ops=1 slices=3 restarts=0 max_pending=1 total_us=3031 max_slice_us=1519 failures=0 swap_wall_us=3533 swap_pass=1\r\nTINYDRAW_LIVE_LEDGER site=drain renders=0 cold=0 damage=0 evict=0 stale=0 unexplained=0 total_renders=140 unique=18 amplification=7.778\r\nTINYDRAW_LIVE_SETTLE zoom=25 tiles=42 no_ink=25 slices=750 total_us=61291 max_slice_us=293 work=457814 failures=0 permanent_failures=0\r\n",
+      "committed": true,
+      "upToCommitReportMs": 74.67999999970198,
+      "upToLastCanvasChangeMs": 401.35999999940395,
+      "doneAt": 384189.4450000003
+    }
+  ],
+  "assets": {
+    "wasm": "/Users/alice/src/a/esp32sim/web/wasm/esp32sim.wasm",
+    "rom": "/Users/alice/.espressif/tools/esp-rom-elfs/20241011/esp32s3_rev0_rom.elf",
+    "bootloader": "/Users/alice/src/a/esp32sim/target/tinydraw-battery-2026-09-04/firmware/bootloader/bootloader.bin",
+    "ptable": "/Users/alice/src/a/esp32sim/target/tinydraw-battery-2026-09-04/firmware/partition_table/partition-table.bin",
+    "app": "/Users/alice/src/a/esp32sim/target/tinydraw-battery-2026-09-04/firmware/tinydraw_esp32.bin",
+    "elf": "/Users/alice/src/a/esp32sim/target/tinydraw-battery-2026-09-04/firmware/tinydraw_esp32.elf"
+  },
+  "summary": {
+    "strokes": 3,
+    "responded": 3,
+    "committed": 3,
+    "downToCanvasMs": [
+      64.67000000178814,
+      52.764999993145466,
+      43.90999999642372
+    ],
+    "movementPoints": 24,
+    "movementResponded": 24,
+    "movementToCanvasMs": [
+      69.10499999672174,
+      62.6600000038743,
+      60.74499999731779,
+      69.4400000050664,
+      55.350000001490116,
+      52.67999999970198,
+      53.145000003278255,
+      50.435000002384186,
+      68.42000000178814,
+      56.70500000566244,
+      55.60999999940395,
+      59.38500000536442,
+      56.475000001490116,
+      52.16499999910593,
+      54.71000000089407,
+      52.57999999821186,
+      53.59499999880791,
+      53.625,
+      58.11999999731779,
+      55.024999998509884,
+      52.375,
+      50.644999995827675,
+      49.96000000089407,
+      46.19500000029802
+    ],
+    "upToCommitReportMs": [
+      101.9100000038743,
+      77.85000000149012,
+      74.67999999970198
+    ],
+    "upToLastCanvasChangeMs": [
+      540.7550000026822,
+      416.2900000065565,
+      401.35999999940395
+    ],
+    "endpoint": "Queued input to changed pixels near its position submitted to canvas; lift report is firmware console arrival. Not optical presentation."
+  },
+  "_rawArtifact": {
+    "url": "https://github.com/aliceisjustplaying/esp32sim/blob/sanitized-6791daa7c68315e742b904366616e8f4ed9dda10/docs/evidence/tinydraw-browser-jit-priorities-2026-09-05/production-drawing/drawing-response.json",
+    "sha256": "8ad971068d861af584433642dbd33d935a654cbc1eae53ab2321e473c581cc14",
+    "bytes": 133662,
+    "omittedFields": [
+      "frames",
+      "serial"
+    ]
+  }
+}

@@ -1,0 +1,491 @@
+--- a/emu-core/src/core.rs
++++ b/emu-core/src/core.rs
+@@ -133,6 +133,8 @@
+     fn flush_caches(&mut self) {}
+     /// Enable/disable native code generation, if the core has it (`--no-jit`: the interpreter is the oracle).
+     fn set_jit(&mut self, _on: bool) {}
++    /// Permit bounded compiled chaining when no block observers or probes are active.
++    fn set_block_chaining(&mut self, _on: bool) {}
+     /// (blocks built, cache flushes, blocks compiled, native code bytes) for the end-of-run report.
+     fn code_cache_stats(&self) -> Option<(u64, u64, u64, usize)> { None }
+     /// Registers worth printing in a trace line, in the core's conventional order.
+--- a/esp-soc/src/machine.rs
++++ b/esp-soc/src/machine.rs
+@@ -55,6 +55,8 @@
+ 
+ pub struct Machine<S: Soc> {
+     pub mac: [u8; 6],
++    /// Experimental browser chaining; scheduler admission remains separate from this preference.
++    pub block_chaining: bool,
+     pub reboots: u64,
+     /// function stubs: at this pc (a function entry), return `value` immediately
+     pub stubs: HashMap<u32, u32>,
+@@ -162,7 +164,7 @@
+ impl<S: Soc> Machine<S> {
+     pub fn new(mac: [u8; 6], bus: S::Bus) -> Self {
+         Machine {
+-            mac, reboots: 0, stubs: HashMap::new(), stub_bloom: 0, probe_bloom: 0, stub_hits: 0, fn_probes: HashMap::new(),
++            mac, block_chaining: false, reboots: 0, stubs: HashMap::new(), stub_bloom: 0, probe_bloom: 0, stub_hits: 0, fn_probes: HashMap::new(),
+             cores: (0..S::CORES).map(S::new_core).collect(), core_held: (0..S::CORES).map(|i| i > 0).collect(),
+             bus, symbols: BTreeMap::new(),
+             dbg: Debug { stop_on_unimplemented: true, stop_after_exceptions: u64::MAX },
+@@ -481,7 +483,10 @@
+     fn run_unmodeled(&mut self, max_insns: u64) -> Stop {
+         self.stub_bloom = self.stubs.keys().fold(0, |m, &pc| m | pc_bit(pc));
+         self.probe_bloom = self.fn_probes.keys().fold(0, |m, &pc| m | pc_bit(pc));
+-        for c in &mut self.cores { c.set_boundaries(self.stub_bloom | self.probe_bloom); }
++        for c in &mut self.cores {
++            c.set_boundaries(self.stub_bloom | self.probe_bloom);
++            c.set_block_chaining(self.block_chaining && self.exceptions < self.dbg.stop_after_exceptions && self.observers.is_empty() && self.stubs.is_empty() && self.fn_probes.is_empty());
++        }
+         // the fast path cannot honour per-instruction observers; those runs single-step
+         let blocks = !self.probes.contains(Wants::INSN);
+         let slow_path = self.probes.contains(Wants::NO_IDLE_SKIP);
+@@ -758,7 +763,10 @@
+     pub fn run_until_cycle(&mut self, target: u64) -> RunUntil {
+         self.stub_bloom = self.stubs.keys().fold(0, |m, &pc| m | pc_bit(pc));
+         self.probe_bloom = self.fn_probes.keys().fold(0, |m, &pc| m | pc_bit(pc));
+-        for c in &mut self.cores { c.set_boundaries(self.stub_bloom | self.probe_bloom); }
++        for c in &mut self.cores {
++            c.set_boundaries(self.stub_bloom | self.probe_bloom);
++            c.set_block_chaining(self.block_chaining && self.exceptions < self.dbg.stop_after_exceptions && self.observers.is_empty() && self.stubs.is_empty() && self.fn_probes.is_empty());
++        }
+         let blocks = !self.probes.contains(Wants::INSN);
+         let no_skip = self.probes.contains(Wants::NO_IDLE_SKIP);
+         loop {
+--- a/wasm/Cargo.toml
++++ b/wasm/Cargo.toml
+@@ -18,6 +18,7 @@
+ xtensa-lx7 = { path = "../xtensa-lx7" }
+ 
+ [features]
++jit-chain = ["xtensa-lx7/wasm-jit-chain"]
+ jit-tests = ["xtensa-lx7/wasm-jit-tests"]
+ jit-profile = ["xtensa-lx7/wasm-jit-profile"]
+ cpu-profile = ["xtensa-lx7/wasm-cpu-profile", "esp-soc/wasm-cpu-profile"]
+--- a/wasm/src/jit_tests.rs
++++ b/wasm/src/jit_tests.rs
+@@ -94,5 +94,31 @@
+         }
+         same(&a, &b);
+     }
+-    3
++    3 + chained_machine()
+ }
++
++fn chained_machine() -> u32 {
++    if !cfg!(feature = "jit-chain") { return 0; }
++    let (mut a, mut b) = (machine(false), machine(true));
++    let program = [0x1b, 0x33, 0x1b, 0x44, 0x06, 0xfe, 0xff];
++    for m in [&mut a, &mut b] {
++        SocBus::load_bytes(&mut m.bus, BASE, &program).unwrap();
++        m.cores[0].pc = BASE;
++        m.block_chaining = true;
++        m.max_cycles = m.bus.cycles + 4096;
++        assert!(matches!(m.run(u64::MAX), Stop::Halted));
++    }
++    same(&a, &b);
++    assert!(b.cores[0].blocks.chained_backedges > 100);
++    let before = b.cores[0].blocks.chained_backedges;
++    // Observers must retain one notification per ordinary block.
++    for m in [&mut a, &mut b] {
++        m.add_observer(Box::new(esp_soc::observers::BlockProfile::new(20)));
++        m.max_cycles = m.bus.cycles + 64;
++        assert!(matches!(m.run(u64::MAX), Stop::Halted));
++    }
++    same(&a, &b);
++    assert_eq!(b.cores[0].blocks.chained_backedges, before);
++    assert_eq!(a.reports(), b.reports());
++    1
++}
+--- a/wasm/src/lib.rs
++++ b/wasm/src/lib.rs
+@@ -31,6 +31,7 @@
+     fn observer(&mut self, name: &str, arg: &str) -> u32;
+     fn reports(&mut self) -> String;
+     fn set_jit(&mut self, enabled: bool);
++    fn set_block_chaining(&mut self, enabled: bool);
+     fn as_any_mut(&mut self) -> &mut dyn Any;
+ }
+ 
+@@ -92,6 +93,7 @@
+         }
+     }
+     fn reports(&mut self) -> String { Machine::reports(self) }
++    fn set_block_chaining(&mut self, enabled: bool) { self.block_chaining = enabled; }
+     fn set_jit(&mut self, enabled: bool) { for core in &mut self.cores { xtensa_lx7::Core::set_jit(core, enabled); } }
+     fn as_any_mut(&mut self) -> &mut dyn Any { self }
+ }
+@@ -776,6 +778,28 @@
+     unsafe { &mut *e }.m.set_jit(enabled != 0);
+ }
+ 
++/// Enable the experimental bounded browser loop chain (requires `jit-chain`).
++///
++/// # Safety
++/// `e` must be a live exclusively borrowed emulator.
++#[no_mangle]
++pub unsafe extern "C" fn esp32sim_set_block_chaining(e: *mut Emu, enabled: u32) {
++    // SAFETY: The ABI caller guarantees a live exclusive handle.
++    unsafe { &mut *e }.m.set_block_chaining(enabled != 0);
++}
++
++/// Number of repeated backedges executed inside generated blocks.
++///
++/// # Safety
++/// `e` must be a live exclusively borrowed emulator.
++#[no_mangle]
++pub unsafe extern "C" fn esp32sim_chained_backedges(e: *mut Emu) -> f64 {
++    // SAFETY: The ABI caller guarantees a live exclusive handle.
++    unsafe { &mut *e }.m.as_any_mut().downcast_mut::<esp32s3::Machine>()
++        .map(|m| m.cores.iter().map(|c| c.blocks.chained_backedges).sum::<u64>() as f64)
++        .unwrap_or(0.0)
++}
++
+ /// Guest instructions retired by compiled blocks, including interpreter helpers.
+ ///
+ /// # Safety
+--- a/web/wasm/worker.js
++++ b/web/wasm/worker.js
+@@ -52,6 +52,7 @@
+       if (emu) { wasm.esp32sim_delete(emu); emu = 0; }
+       emu = withBytes(enc.encode(m.board), (p, n) => wasm.esp32sim_new(p, n, m.flash_mb | 0, m.psram_mb | 0));
+       if (emu !== 0) wasm.esp32sim_set_jit(emu, m.jit === false ? 0 : 1);
++      if (emu !== 0 && wasm.esp32sim_set_block_chaining) wasm.esp32sim_set_block_chaining(emu, m.chain === true ? 1 : 0);
+       if (emu !== 0 && wasm.esp32sim_cpu_hz) CPU_HZ = wasm.esp32sim_cpu_hz(emu);
+       postMessage({ created: emu !== 0 });
+     }
+--- a/xtensa-lx7/Cargo.toml
++++ b/xtensa-lx7/Cargo.toml
+@@ -9,6 +9,7 @@
+ emu-core = { path = "../emu-core" }
+ 
+ [features]
++wasm-jit-chain = []
+ wasm-jit-tests = []
+ wasm-jit-profile = []
+ wasm-cpu-profile = []
+--- a/xtensa-lx7/src/block.rs
++++ b/xtensa-lx7/src/block.rs
+@@ -63,6 +63,8 @@
+     code: Option<crate::jit::CodeCache>,
+     helpers: Option<crate::jit::Helpers>,
+     pub jit_enabled: bool,
++    pub chaining_allowed: bool,
++    pub chained_backedges: u64,
+     pub compiled: u64,
+     /// Instructions retired through compiled blocks (including their interpreter helpers).
+     pub jit_instructions: u64,
+@@ -74,7 +76,7 @@
+                      #[cfg(all(target_arch = "wasm32", feature = "wasm-jit-profile"))]
+                      profile: crate::jit::profile::Profile::default(),
+                      entries: vec![Entry::EMPTY; ENTRIES], arena: Vec::with_capacity(ARENA_MAX + MAX_LEN), resume: (0, 0, 1), builds: 0, flushes: 0,
+-                     code: crate::jit::CodeCache::new(CODE_SIZE), helpers: None, jit_enabled: crate::jit::AVAILABLE, compiled: 0, jit_instructions: 0 }
++                     code: crate::jit::CodeCache::new(CODE_SIZE), helpers: None, chaining_allowed: false, chained_backedges: 0, jit_enabled: crate::jit::AVAILABLE, compiled: 0, jit_instructions: 0 }
+     }
+     pub fn flush(&mut self) {
+         for e in self.entries.iter_mut() { *e = Entry::EMPTY; }
+@@ -217,6 +219,11 @@
+     if code != crate::jit::NONE && cpu.blocks.jit_enabled && crate::jit::ready(cpu.blocks.code.as_ref().unwrap(), code) {
+         if cpu.blocks.helpers.is_none() { cpu.blocks.helpers = Some(crate::jit::Helpers::new::<B>()); }
+         let entry = cpu.blocks.arena[k as usize].off;
++        #[cfg(target_arch = "wasm32")]
++        if entry == 0 && cpu.blocks.chaining_allowed && crate::jit::can_chain(cpu.blocks.code.as_ref().unwrap(), code) {
++            limit = budget.min(64);
++            for i in 0..3 { let d = cpu.ccompare[i].wrapping_sub(cpu.ccount); if d != 0 && d < limit { limit = d; } }
++        }
+         // SAFETY: `code` and `entry` came from this live cache entry, the helpers were created for
+         // `B`, and `fast_mem` below describes this exclusively borrowed bus for the duration.
+         let r = unsafe {
+@@ -225,13 +232,20 @@
+             crate::jit::run(b.code.as_ref().unwrap(), code, cpu, bus, b.helpers.as_ref().unwrap(), limit, entry, fm)
+         };
+         let (done, exit) = (r & 0xffff, r >> 16);
++        #[cfg(target_arch = "wasm32")]
++        { cpu.blocks.chained_backedges += done.saturating_sub(1) as u64 / cpu.blocks.entries[ei as usize].n as u64; }
+         cpu.blocks.jit_instructions += done as u64;
+         cpu.insn_count += done as u64;
+         cpu.advance_ccount(done);
+         return match exit {
+             crate::jit::CODE_TRAP => (done, cpu.jit_trap.take()),
+             crate::jit::CODE_TRAP_PRE => (done + 1, cpu.jit_trap.take()),
+-            crate::jit::CODE_CUT => { if k + done < end { cpu.blocks.resume = (ei, k + done, cpu.pc); } (done, None) }
++            crate::jit::CODE_CUT => {
++                let start = cpu.blocks.entries[ei as usize].start;
++                let offset = (k - start + done) % (end - start);
++                if offset != 0 { cpu.blocks.resume = (ei, start + offset, cpu.pc); }
++                (done, None)
++            }
+             _ => (done, None),
+         };
+     }
+--- a/xtensa-lx7/src/core.rs
++++ b/xtensa-lx7/src/core.rs
+@@ -35,6 +35,7 @@
+     fn run<B: Bus>(&mut self, bus: &mut B, budget: u32) -> (u32, Option<Trap>) { crate::block::run_block(self, bus, budget) }
+     fn set_boundaries(&mut self, bloom: u64) { if self.boundary_bloom != bloom { self.blocks.flush(); self.boundary_bloom = bloom; } }
+     fn flush_caches(&mut self) { self.blocks.flush(); }
++    fn set_block_chaining(&mut self, on: bool) { self.blocks.chaining_allowed = on; }
+     fn set_jit(&mut self, on: bool) { self.blocks.jit_enabled = on; }
+     fn code_cache_stats(&self) -> Option<(u64, u64, u64, usize)> { Some((self.blocks.builds, self.blocks.flushes, self.blocks.compiled, self.blocks.code_bytes())) }
+     fn regs(&self, out: &mut Vec<(&'static str, u32)>) {
+--- a/xtensa-lx7/src/jit/wasm.rs
++++ b/xtensa-lx7/src/jit/wasm.rs
+@@ -10,6 +10,7 @@
+ use std::mem::{offset_of, size_of};
+ 
+ pub const AVAILABLE: bool = true;
++pub const CHAIN_ENTRY: u32 = 1 << 31;
+ pub const NONE: u32 = u32::MAX;
+ pub const CODE_END: u32 = 0;
+ pub const CODE_LEFT: u32 = 1;
+@@ -31,6 +32,7 @@
+     pc: u32,
+     pcs: Vec<u32>,
+     fast: bool,
++    chainable: bool,
+     generation: u64,
+     hits: Cell<u32>,
+     slot: Cell<u32>,
+@@ -146,6 +148,7 @@
+         .collect();
+     cc.blocks.push(Block {
+         pcs,
++        chainable: fast && emitter::chainable(instructions, pc),
+         instructions: instructions.to_vec(),
+         pc,
+         fast,
+@@ -157,6 +160,8 @@
+     cc.by_pc.insert(key, id);
+     id
+ }
++pub fn can_chain(cc: &CodeCache, code: u32) -> bool { cc.blocks[code as usize].chainable }
++
+ pub fn ready(cc: &CodeCache, code: u32) -> bool {
+     let b = &cc.blocks[code as usize];
+     if b.slot.get() == NONE {
+@@ -243,11 +248,12 @@
+     let (tlb, versions) = fm
+         .map(|m| (m.tlb, m.page_ver))
+         .unwrap_or((std::ptr::null(), std::ptr::null_mut()));
+-    let result = f(cpu, bus, h, budget, entry, tlb, versions);
++    let chain = entry == 0 && cpu.blocks.chaining_allowed && cc.blocks[code as usize].chainable;
++    let result = f(cpu, bus, h, budget, entry | if chain { CHAIN_ENTRY } else { 0 }, tlb, versions);
+     let done = result & 0xffff;
+     if done > 0 {
+         let b = &cc.blocks[code as usize];
+-        let pc = b.pcs[(entry + done - 1) as usize];
++        let pc = b.pcs[(entry as usize + done as usize - 1) % b.pcs.len()];
+         bus.note_pc(pc);
+     }
+     // Direct memory accesses need no peripheral callbacks. Preserve the last instruction PC
+--- a/xtensa-lx7/src/jit/wasm_emit.rs
++++ b/xtensa-lx7/src/jit/wasm_emit.rs
+@@ -109,8 +109,19 @@
+ const LBEG: usize = offset_of!(Cpu, lbeg);
+ const SAR: usize = offset_of!(Cpu, sar);
+ 
++pub(super) fn chainable(instructions: &[BlockInsn], pc: u32) -> bool {
++    use crate::Op::*;
++    cfg!(feature = "wasm-jit-chain") && instructions.last().is_some_and(|bi| {
++        matches!(bi.insn.op, J | Beqz | BeqzN | Bnez | BnezN | Bltz | Bgez | Beqi | Bnei | Blti | Bgei | Bltui | Bgeui | Beq | Bne | Blt | Bge | Bltu | Bgeu | Bbci | Bbsi | Bbc | Bbs)
++            && bi.insn.imm as u32 == pc
++    }) && instructions[..instructions.len().saturating_sub(1)].iter().all(|bi| {
++        supported(bi.insn.op, true) && !terminal_helper(bi.insn.op)
++            && !matches!(bi.insn.op, S8i | S16i | S32i | S32iN | J | Jx | Beqz | BeqzN | Bnez | BnezN | Bltz | Bgez | Beqi | Bnei | Blti | Bgei | Bltui | Bgeui | Beq | Bne | Blt | Bge | Bltu | Bgeu | Bbci | Bbsi | Bbc | Bbs)
++    })
++}
++
+ #[derive(Default)]
+-struct Gen(Vec<u8>, u16, u16);
++struct Gen(Vec<u8>, u16, u16, Option<(u32, u32)>);
+ impl Gen {
+     fn op(&mut self, op: u8) {
+         self.0.push(op);
+@@ -218,6 +229,19 @@
+     fn end(&mut self) {
+         self.op(0x0b);
+     }
++    fn branch(&mut self, target: u32, depth: u8) {
++        self.cpu_const(PC, target);
++        if let Some((head, count)) = self.3 {
++            if target == head {
++                self.get(4); self.c(CHAIN_ENTRY); self.op(0x71);
++                self.get(3); self.get(DONE); self.op(0x6b); self.c(count); self.op(0x4f);
++                // Convert the high-bit flag to a boolean before AND with the budget check.
++                self.set(TMP); self.op(0x45); self.op(0x45); self.get(TMP); self.op(0x71);
++                self.0.extend([0x0d, depth]);
++            }
++        }
++        self.ret(CODE_LEFT);
++    }
+     fn ret(&mut self, code: u32) {
+         self.spill();
+         self.ret_value(code);
+@@ -353,13 +377,14 @@
+             mask | (1 << bi.insn.r) | (1 << bi.insn.s) | (1 << bi.insn.t)
+         }
+     });
+-    let mut g = Gen(Vec::new(), 0, registers);
++    let mut g = Gen(Vec::new(), 0, registers, None);
+     g.reload();
+     // The common path has a whole-block budget, no possible window collision and
+     // no active loop end in this block. Prove those facts once rather than checking
+     // them for each instruction. Cuts/resumes and exceptional states use the checked
+     // path. Unsigned subtraction also handles blocks crossing the address wrap.
+     g.get(4);
++    g.c(!CHAIN_ENTRY); g.op(0x71);
+     g.op(0x45);
+     g.get(3);
+     g.c(block.instructions.len() as u32);
+@@ -383,7 +408,17 @@
+     g.op(0x72);
+     g.op(0x71);
+     g.begin_if();
+-    emit_body(&mut g, block, true);
++    if block.chainable {
++        // Every exit in a later iteration must spill writes from all earlier iterations.
++        g.1 = registers;
++        g.3 = Some((block.pc, block.instructions.len() as u32));
++        g.0.extend([0x03, 0x40]);
++        emit_body(&mut g, block, true);
++        g.end();
++        g.3 = None;
++    } else {
++        emit_body(&mut g, block, true);
++    }
+     g.end();
+     g.1 = 0;
+     emit_body(&mut g, block, false);
+@@ -397,6 +432,7 @@
+         let next = pc.wrapping_add(bi.insn.len as u32);
+         if !whole {
+             g.get(4);
++            g.c(!CHAIN_ENTRY); g.op(0x71);
+             g.c(index as u32);
+             g.op(0x4d);
+             g.begin_if();
+@@ -578,8 +614,7 @@
+         }
+         J => {
+             g.advance();
+-            g.cpu_const(PC, imm);
+-            g.ret(CODE_LEFT);
++            g.branch(imm, 0);
+         }
+         Jx => {
+             g.advance();
+@@ -651,8 +686,7 @@
+             });
+             g.begin_if();
+             g.advance();
+-            g.cpu_const(PC, imm);
+-            g.ret(CODE_LEFT);
++            g.branch(imm, 1);
+             g.end();
+         }
+         Bbci | Bbsi | Bbc | Bbs => {
+@@ -673,8 +707,7 @@
+             });
+             g.begin_if();
+             g.advance();
+-            g.cpu_const(PC, imm);
+-            g.ret(CODE_LEFT);
++            g.branch(imm, 1);
+             g.end();
+         }
+         L8ui | L16ui | L16si | L32i | L32iN | L32r | S8i | S16i | S32i | S32iN if fast => {
+--- a/xtensa-lx7/src/jit/wasm_tests.rs
++++ b/xtensa-lx7/src/jit/wasm_tests.rs
+@@ -299,13 +299,14 @@
+     }
+     tests
+ }
+-fn scheduler() {
++fn scheduler(chain: bool, timer_offset: u32) {
+     // addi.n a3,a3,1; addi.n a4,a4,1; j back to the first instruction.
+     let program = [0x1b, 0x33, 0x1b, 0x44, 0x06, 0xfe, 0xff];
+     let (mut a, mut b) = (cpu(7), cpu(7));
+     let (mut ra, mut rb) = (Ram::new(true, false), Ram::new(true, false));
+     ra.ram.mem[..7].copy_from_slice(&program);
+     rb.ram.mem[..7].copy_from_slice(&program);
++    b.blocks.chaining_allowed = chain;
+     let mut total = 0;
+     for turn in 0..400 {
+         // Cut/resume at every possible position; change a hot instruction after compilation.
+@@ -326,9 +327,10 @@
+         b.blocks.jit_instructions > 100,
+         "scheduler did not use compiled blocks ({total})"
+     );
++    if chain { assert!(b.blocks.chained_backedges > 0); }
+     // A timer deadline inside an already hot block must land at the same instruction.
+     for c in [&mut a, &mut b] {
+-        c.ccompare[0] = c.ccount + 2;
++        c.ccompare[0] = c.ccount + timer_offset;
+         c.intenable = 1 << 6;
+     }
+     for _ in 0..10 {
+@@ -537,7 +539,60 @@
+             tests += 1;
+         }
+     }
+-    scheduler();
++    scheduler(false, 2);
++    if cfg!(feature = "wasm-jit-chain") { for offset in 1..=9 { scheduler(true, offset); } }
+     retention();
+-    tests + 2 + window_masks() + terminal_helpers() + whole_block_guards()
+-}
++    tests + 2 + 9 * cfg!(feature = "wasm-jit-chain") as u32 + loop_chains() + window_masks() + terminal_helpers() + whole_block_guards()
++}
++
++fn loop_chains() -> u32 {
++    if !cfg!(feature = "wasm-jit-chain") { return 0; }
++    let mut cases = 0;
++    for load in [false, true] {
++        let mut block = [insn(if load { Op::L32i } else { Op::Xor }), insn(Op::Addi), insn(Op::Bltu)];
++        block[0].insn.s = 6; block[0].insn.t = 5; block[0].insn.imm = 0;
++        block[1].insn.s = 6; block[1].insn.t = 6; block[1].insn.imm = 4;
++        block[2].insn.s = 6; block[2].insn.t = 7; block[2].insn.imm = BASE as i32;
++        for bi in &mut block { bi.max_ar = crate::exec::max_ar(&bi.insn); }
++        for overflow in [false, true] {
++            compare_configured(&mut block, 15, 0, 64, None, true, false, !overflow, overflow, |c| {
++                c.blocks.chaining_allowed = true;
++                c.set_ar(6, BASE + 0x100); c.set_ar(7, BASE + 0x200);
++            });
++            cases += 1;
++        }
++        let mut cc = CodeCache::new(0).unwrap();
++        let code = queue(&mut cc, &mut block, BASE, true);
++        for _ in 0..HOT { ready(&cc, code); }
++        assert!(can_chain(&cc, code));
++        for budget in 1..=64 {
++            for entry in 0..3 {
++                for count in [1, 2, 5, 100] {
++                    for (address, fast) in [(BASE + 0x100, true), (BASE + 65532, true), (BASE + 0x100, false)] {
++                        let (mut a, mut b) = (cpu(15), cpu(15));
++                        let (mut ra, mut rb) = (Ram::new(fast, false), Ram::new(fast, false));
++                        for c in [&mut a, &mut b] { c.pc = BASE + entry * 3; c.set_ar(6, address); c.set_ar(7, address + count * 4); }
++                        b.blocks.chaining_allowed = true;
++                        let fm = rb.fast_mem();
++                        let result = unsafe { run(&cc, code, &mut b, &mut rb, &Helpers::new::<Ram>(), budget, entry, fm) };
++                        let done = result & 0xffff;
++                        assert!(done > 0 && done <= budget);
++                        if entry == 0 && budget >= 6 && count >= 2 && (!load || (fast && address < BASE + 65532)) { assert!(done >= 6); }
++                        let mut trap = None;
++                        for _ in 0..done {
++                            let index = ((a.pc - BASE) / 3) as usize;
++                            assert!(index < block.len());
++                            ra.note_pc(a.pc);
++                            if let Err(t) = exec_insn(&mut a, &mut ra, &block[index].insn) { trap = Some(t); break; }
++                        }
++                        assert_eq!(trap, b.jit_trap.take());
++                        same(&a, &b);
++                        assert_eq!(ra.noted, rb.noted);
++                        cases += 1;
++                    }
++                }
++            }
++        }
++    }
++    cases
++}

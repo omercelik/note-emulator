@@ -1,0 +1,56 @@
+name: pages
+# Build the WebAssembly emulator and publish web/ to GitHub Pages: the emulator, the public demo
+# firmware under web/wasm/fw/public, and what tools/fetch-demo-assets.sh fetches, the same files a
+# local checkout needs: the mask ROM ELFs (Apache-2.0, espressif/esp-rom-elfs), xterm.js for the
+# Terminal tab (MIT, pinned by version and hash) and the Linux-on-esp32-S3 flash image (GPL-3.0,
+# svermigo/Linux-on-esp32-S3, pinned by commit and hash).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Build the wasm module
+        run: tools/wasm-build.sh
+      - name: Production WASM sections (no DWARF, profile names retained)
+        run: node tools/check-wasm-sections.mjs web/wasm/esp32sim.wasm
+      - name: Fetch the demo assets (mask ROM ELFs, xterm.js, the Linux-on-esp32-S3 image)
+        run: tools/fetch-demo-assets.sh
+      # pocket-tank's bootloader, partition table and app are committed under web/wasm/fw/public/ (its
+      # installer site answers runners with other bytes); this checks their hashes and fetches the model
+      # from GitHub.
+      - name: Fetch the pocket-tank model (MIT, mediacutlet/pocket-tank, pinned by SHA-256)
+        run: tools/fetch-pocket-tank.sh
+      - name: Version-stamp the script and module URLs (Pages caches for 10 minutes)
+        run: |
+          v=${GITHUB_SHA::8}
+          sed -i "s|src=\"emu.js\"|src=\"emu.js?v=$v\"|; s|src=\"workbench.js\"|src=\"workbench.js?v=$v\"|; s|href=\"workbench.css\"|href=\"workbench.css?v=$v\"|" web/run.html
+          sed -i "s|'wasm/worker.js'|'wasm/worker.js?v=$v'|; s|fetch('wasm/esp32sim.wasm')|fetch('wasm/esp32sim.wasm?v=$v')|" web/emu.js
+          test "$(grep -o "v=$v" web/run.html | wc -l)" -eq 3
+          grep -c "v=$v" web/run.html web/emu.js
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,33 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/note-core",
+    "crates/note-protocol",
+    "crates/note-machine",
+    "crates/note-runtime",
+    "apps/note-emu",
+    "apps/ndb",
+    "apps/note-net-helper",
+]
+# The forked engine keeps its own workspace; our crates reach it through path dependencies.
+exclude = ["engine/esp32sim"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+rust-version = "1.92"
+
+[workspace.dependencies]
+note-core = { path = "crates/note-core" }
+note-protocol = { path = "crates/note-protocol" }
+note-machine = { path = "crates/note-machine" }
+note-runtime = { path = "crates/note-runtime" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+
+[profile.release]
+opt-level = 3
+debug = 1

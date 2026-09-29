@@ -1,0 +1,63 @@
+{
+  "runs": [
+    {
+      "name": "run-1788599805-baseline",
+      "variant": "baseline",
+      "wallSeconds": 126.12621999999881,
+      "instructions": 9820325756,
+      "compiledInstructions": 6023686459,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "gates": 36
+    },
+    {
+      "name": "run-1788599934-candidate",
+      "variant": "candidate",
+      "wallSeconds": 123.9296099999994,
+      "instructions": 9820325756,
+      "compiledInstructions": 6534998429,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "gates": 36
+    },
+    {
+      "name": "run-1788600061-candidate",
+      "variant": "candidate",
+      "wallSeconds": 123.88531499999762,
+      "instructions": 9820325756,
+      "compiledInstructions": 6534998429,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "gates": 36
+    },
+    {
+      "name": "run-1788600187-baseline",
+      "variant": "baseline",
+      "wallSeconds": 125.60424499999732,
+      "instructions": 9820325756,
+      "compiledInstructions": 6023686459,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "gates": 36
+    },
+    {
+      "name": "run-1788600313-baseline",
+      "variant": "baseline",
+      "wallSeconds": 125.91406499999762,
+      "instructions": 9820325756,
+      "compiledInstructions": 6023686459,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "gates": 36
+    },
+    {
+      "name": "run-1788600440-candidate",
+      "variant": "candidate",
+      "wallSeconds": 123.51339500000327,
+      "instructions": 9820325756,
+      "compiledInstructions": 6534998429,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "gates": 36
+    }
+  ],
+  "medians": {
+    "baseline": 125.91406499999762,
+    "candidate": 123.88531499999762
+  },
+  "wallReductionPercent": 1.6112179366141843
+}

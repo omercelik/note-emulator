@@ -1,0 +1,43 @@
+{
+  "environment": {
+    "Browser": "Chrome/152.0.7977.65",
+    "Protocol-Version": "1.3",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "V8-Version": "15.2.124.18",
+    "WebKit-Version": "537.36 (@fc4d67f1788019a27e32511137ceccbd2fafdaaa)",
+    "webSocketDebuggerUrl": "ws://127.0.0.1:9227/devtools/browser/16fada0a-c998-494c-8c61-6f45751d8416"
+  },
+  "result": {
+    "type": "result",
+    "status": "completed",
+    "stopCode": 0,
+    "verdict": "TINYDRAW_GATE1_AUTOMATED_DONE native_kernels=1 minimap_navigation=1 color_dialog=1 cooperative_compose=1 stress=1 stress_100=1 stress_400=1 overlap_ready=1 overlap_cold=1 general_cold_ready=1 general_cold=1 owner_document=1 workload=1 paced_cold=1 hard_100=1 hard_400=1 pan_100=1 pan_400=1 ring_local=1 pan_seq=1 pan_boundary=1 live_overlay=1 draw_fill=1 cache=1 full_world_cache=1 cache_tour=1 mixed_draw=1 idle_repair=1 ink_trace=1 hairline_capacity=1 long_gesture=1 history_latency=1 settle_timing=1 export_encode=1 export_reserve=1 return=1 ssaa_receipt=yellow",
+    "passed": true,
+    "guestSeconds": 47.75085146666667,
+    "wallSeconds": 124.7485,
+    "setupSeconds": 0.16807999999821185,
+    "instructions": 9820325756,
+    "frames": 101,
+    "chainedBackedges": 0,
+    "jit": {
+      "compiled": 10634,
+      "failed": 0,
+      "released": 6978,
+      "compileMs": 812.0749999843538,
+      "bytes": 61980648,
+      "liveBytes": 20661797,
+      "peakBytes": 23261933,
+      "peakModules": 4337,
+      "instructions": 6023686459
+    },
+    "logs": []
+  },
+  "_rawArtifact": {
+    "url": "https://github.com/aliceisjustplaying/esp32sim/blob/6791daa7c68315e742b904366616e8f4ed9dda10/docs/evidence/tinydraw-browser-jit-priorities-2026-09-05/self-loop-experiment/off-2.json",
+    "sha256": "1a2f99861b35a361f45358e77d84ea44daec2377ccd4dc32d844353301007c23",
+    "bytes": 145761,
+    "omittedFields": [
+      "events"
+    ]
+  }
+}

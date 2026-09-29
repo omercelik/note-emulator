@@ -1,0 +1,21 @@
+{
+  "esp-soc/Cargo.toml": "f2e2d5e2396ca7c258e9d12f402227de5d8ce1f3395e3caee7a6bb986065b1b1",
+  "esp-soc/src/machine.rs": "967717955990a68a00f4a4e6dfa717350dbe56603425f216e4657864381c5652",
+  "esp32s3/src/board.rs": "a3c66efc3c96192bd257a3148838e8198544659b03c1aef8cf697dd64a455696",
+  "wasm/Cargo.toml": "2fe54cae8b7c3e99ddfd2585141f547c697aa29f1cf0d967264fa317a3c641c0",
+  "xtensa-lx7/Cargo.toml": "3da9de8277b3f6f96551875e998b75c0103ff87c79d4944664b44d202e032bc9",
+  "xtensa-lx7/src/block.rs": "aa25ebc5c46760f0ab8771627c5b9f3f77bf57b5f980588f05f2c39becb02f3b",
+  "xtensa-lx7/src/jit/wasm.rs": "d7e7d57ac446150c7f87b2bcbc9163596fa155a35669e11052ba6c3907e007c1",
+  "xtensa-lx7/src/jit/wasm_emit.rs": "2daba30c27a274a87cfc538f4633e686b07756289ab363faaad0f91b90e8df1d",
+  "tools/browser-benchmark/capture-cpu.mjs": "2a224056be6502fb5b7df1f1f63b29e75ba6946e1aa08768030de40f71ffd9cc",
+  "tools/browser-benchmark/battery.html": "d911a9b465fb8a424bef7b669ecbce6dc6268c6b73560417389c04237053c27f",
+  "tools/browser-benchmark/response.html": "2ded61ce3ed5449f249f1db204305ca16d0447cfef628dbe1dbe13e33c3d2051",
+  "tools/browser-benchmark/battery-worker.mjs": "3dd726af9f05f578681ae4ebf66b276367d185275b99be887140676febe0d0e7",
+  "tools/browser-benchmark/serve.py": "863b4b54272f2b0fffc82d8f8d63b8819b91dc3d80cd0469c242f3fcf6baaa6c",
+  "tools/browser-benchmark/README.md": "14b2527b113f4608c0c60998d855ed57fb5d6a094829d54418aaae8d26a8553a",
+  "tools/browser-benchmark/battery.mjs": "c5a92e878e9dda98697becf9d7992ff2a0337162354c1e2e527c2ac139c67656",
+  "tools/browser-benchmark/summarize-cpu.py": "0f0ca10792fe82596a29074de79f96a7fb32a057f58ff6d754f6fc935ad1cc22",
+  "tools/browser-benchmark/capture-response.mjs": "74e387391693cc5367e1ecdb4600be8222eb98343d16203bc9b75aff6dd87579",
+  "tools/browser-benchmark/response.mjs": "efff99ee3582df1aabd1181d0598af54f72b766a9bd32b8f2ce51694ed5881fd",
+  "tools/browser-benchmark/summarize-jit.py": "484a55491598e3d02b87ab82d28cabc80be65d7eb9458c3be64576055f0f56c1"
+}

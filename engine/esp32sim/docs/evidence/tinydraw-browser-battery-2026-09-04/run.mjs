@@ -1,0 +1,56 @@
+export async function runBattery(load, emit) {
+  const enc = new TextEncoder(), dec = new TextDecoder();
+  const started = performance.now();
+  let w, serial = '', frames = 0, attempts = 0, prepared = 0, committed = 0, aborted = 0;
+  const logs = [], cache = new Map(), disabled = new Set();
+  const mem = () => new Uint8Array(w.memory.buffer);
+  const hostLog = (p,n) => { const line = dec.decode(mem().subarray(p,p+n)); logs.push(line); emit({type:'log',line}); };
+  const wasmBytes = await load('wasm');
+  w = (await WebAssembly.instantiate(wasmBytes, {env:{host_log:hostLog}})).instance.exports;
+  const withBytes = (b,f) => {const p=w.esp32sim_alloc(b.length);mem().set(b,p);try{return f(p,b.length);}finally{w.esp32sim_free(p,b.length);}};
+  const emu = withBytes(enc.encode('waveshare-amoled18-v2'),(p,n)=>w.esp32sim_new(p,n,16,8));
+  if (!emu) throw Error('create failed');
+  for (const [name,kind] of [['rom',0],['bootloader',1],['ptable',2],['app',3],['elf',4]]) {
+    const rc=withBytes(await load(name),(p,n)=>w.esp32sim_load(emu,kind,p,n));
+    if(rc)throw Error(`load ${name}: ${rc}`);
+  }
+  if(w.esp32sim_boot(emu,0))throw Error('boot failed');
+  const hz=w.esp32sim_cpu_hz(emu), executionStart=performance.now();
+  let lastReport=executionStart, status='timeout', stopCode=0;
+  function dispatch() {
+    attempts++;
+    const id=w.esp32sim_jit_prepare(emu,2000000,Date.now());
+    if(!id)return false;
+    prepared++;
+    if(disabled.has(id)){w.esp32sim_jit_abort(emu);return false;}
+    try {
+      let instance=cache.get(id);
+      if(!instance){const p=w.esp32sim_jit_module_ptr(emu),n=w.esp32sim_jit_module_len(emu);instance=new WebAssembly.Instance(new WebAssembly.Module(mem().slice(p,p+n)),{env:{memory:w.memory}});cache.set(id,instance);}
+      instance.exports.run();
+      if(w.esp32sim_jit_commit(emu)===1){committed++;return true;}
+    } catch(e){w.esp32sim_jit_abort(emu);aborted++;emit({type:'jit-error',line:String(e)});}
+    disabled.add(id);return false;
+  }
+  function drain(){
+    const n=w.esp32sim_out_take(emu);
+    for(let i=0;i<n;i++){
+      const kind=w.esp32sim_out_kind(emu,i),p=w.esp32sim_out_ptr(emu,i),len=w.esp32sim_out_len(emu,i);
+      if(kind!==1){frames++;continue;}
+      const msg=JSON.parse(dec.decode(mem().subarray(p,p+len)));
+      if(msg.t==='serial' && msg.src==='usb'){serial+=msg.data;emit({type:'serial',data:msg.data});}
+      else if(msg.t==='emu')emit({type:'emu',line:msg.msg});
+    }
+  }
+  try {
+    while(w.esp32sim_cycles(emu)<hz*480 && performance.now()-executionStart<1800000){
+      stopCode=dispatch()?0:w.esp32sim_run(emu,2000000,Date.now());drain();
+      if(stopCode){status='stopped';break;}
+      if(/TINYDRAW_GATE1_AUTOMATED_DONE[^\r\n]*[\r\n]/.test(serial)){status='completed';break;}
+      if(/Guru Meditation|TG1WDT_SYS_RST|stack overflow|task_wdt/.test(serial)||logs.some(l=>/chip reset|panic/i.test(l))){status='firmware-failure';break;}
+      if(performance.now()-lastReport>2000){lastReport=performance.now();emit({type:'progress',guestSeconds:w.esp32sim_cycles(emu)/hz,wallSeconds:(lastReport-executionStart)/1000,frames,attempts,committed,tail:serial.slice(-400)});await new Promise(r=>setTimeout(r,0));}
+    }
+    const verdict=serial.match(/TINYDRAW_GATE1_AUTOMATED_DONE[^\r\n]*/)?.[0]??null;
+    const result={status,stopCode,verdict,passed:status==='completed'&&!/=0(?:\s|$)/.test(verdict),guestSeconds:w.esp32sim_cycles(emu)/hz,wallSeconds:(performance.now()-executionStart)/1000,setupSeconds:(executionStart-started)/1000,instructions:w.esp32sim_insns(emu),frames,jit:{attempts,prepared,committed,aborted},logs};
+    emit({type:'result',...result});return result;
+  }finally{w.esp32sim_delete(emu);}
+}

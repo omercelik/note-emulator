@@ -1,0 +1,304 @@
+{
+  "baseline": [
+    {
+      "wallSeconds": 125.97571000000089,
+      "intervalSeconds": {
+        "boot_and_native_kernels": 21.30497999999672,
+        "cold_render_and_initial_pan": 14.661624999999997,
+        "pan_sequences": 4.988575000002982,
+        "cache_tour": 9.101280000001196,
+        "mixed_drawing": 26.911979999996717,
+        "hairlines": 20.474039999999107,
+        "export": 11.815285000003882,
+        "history": 10.906924999997017,
+        "settling": 5.810780000001188
+      },
+      "instructions": 9820325756,
+      "jitInstructions": 6534998429,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "verdict": "TINYDRAW_GATE1_AUTOMATED_DONE native_kernels=1 minimap_navigation=1 color_dialog=1 cooperative_compose=1 stress=1 stress_100=1 stress_400=1 overlap_ready=1 overlap_cold=1 general_cold_ready=1 general_cold=1 owner_document=1 workload=1 paced_cold=1 hard_100=1 hard_400=1 pan_100=1 pan_400=1 ring_local=1 pan_seq=1 pan_boundary=1 live_overlay=1 draw_fill=1 cache=1 full_world_cache=1 cache_tour=1 mixed_draw=1 idle_repair=1 ink_trace=1 hairline_capacity=1 long_gesture=1 history_latency=1 settle_timing=1 export_encode=1 export_reserve=1 return=1 ssaa_receipt=yellow",
+      "browser": "Chrome/152.0.7977.77",
+      "v8": "15.2.124.19",
+      "capture": "final-baseline-1",
+      "generatedWasmBytes": 74106830,
+      "peakLiveGeneratedWasmBytes": 28808859,
+      "compilationFailures": 0
+    },
+    {
+      "wallSeconds": 124.57695500000567,
+      "intervalSeconds": {
+        "boot_and_native_kernels": 21.596410000003875,
+        "cold_render_and_initial_pan": 14.976289999999107,
+        "pan_sequences": 4.657185000002386,
+        "cache_tour": 8.088204999998212,
+        "mixed_drawing": 25.403289999999103,
+        "hairlines": 20.02165500000119,
+        "export": 12.433369999997325,
+        "history": 11.294505000002673,
+        "settling": 6.1058799999952384
+      },
+      "instructions": 9820325756,
+      "jitInstructions": 6534998429,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "verdict": "TINYDRAW_GATE1_AUTOMATED_DONE native_kernels=1 minimap_navigation=1 color_dialog=1 cooperative_compose=1 stress=1 stress_100=1 stress_400=1 overlap_ready=1 overlap_cold=1 general_cold_ready=1 general_cold=1 owner_document=1 workload=1 paced_cold=1 hard_100=1 hard_400=1 pan_100=1 pan_400=1 ring_local=1 pan_seq=1 pan_boundary=1 live_overlay=1 draw_fill=1 cache=1 full_world_cache=1 cache_tour=1 mixed_draw=1 idle_repair=1 ink_trace=1 hairline_capacity=1 long_gesture=1 history_latency=1 settle_timing=1 export_encode=1 export_reserve=1 return=1 ssaa_receipt=yellow",
+      "browser": "Chrome/152.0.7977.77",
+      "v8": "15.2.124.19",
+      "capture": "final-baseline-2",
+      "generatedWasmBytes": 74106830,
+      "peakLiveGeneratedWasmBytes": 28808859,
+      "compilationFailures": 0
+    },
+    {
+      "wallSeconds": 123.2340150000006,
+      "intervalSeconds": {
+        "boot_and_native_kernels": 22.024259999997913,
+        "cold_render_and_initial_pan": 15.013010000005362,
+        "pan_sequences": 4.3413849999979135,
+        "cache_tour": 8.14749499999732,
+        "mixed_drawing": 25.50862000000477,
+        "hairlines": 19.50794999999553,
+        "export": 11.986039999999107,
+        "history": 10.866030000001189,
+        "settling": 5.839065000005064
+      },
+      "instructions": 9820325756,
+      "jitInstructions": 6534998429,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "verdict": "TINYDRAW_GATE1_AUTOMATED_DONE native_kernels=1 minimap_navigation=1 color_dialog=1 cooperative_compose=1 stress=1 stress_100=1 stress_400=1 overlap_ready=1 overlap_cold=1 general_cold_ready=1 general_cold=1 owner_document=1 workload=1 paced_cold=1 hard_100=1 hard_400=1 pan_100=1 pan_400=1 ring_local=1 pan_seq=1 pan_boundary=1 live_overlay=1 draw_fill=1 cache=1 full_world_cache=1 cache_tour=1 mixed_draw=1 idle_repair=1 ink_trace=1 hairline_capacity=1 long_gesture=1 history_latency=1 settle_timing=1 export_encode=1 export_reserve=1 return=1 ssaa_receipt=yellow",
+      "browser": "Chrome/152.0.7977.77",
+      "v8": "15.2.124.19",
+      "capture": "final-baseline-3",
+      "generatedWasmBytes": 74106830,
+      "peakLiveGeneratedWasmBytes": 28808859,
+      "compilationFailures": 0
+    }
+  ],
+  "candidate": [
+    {
+      "wallSeconds": 105.54746999999881,
+      "intervalSeconds": {
+        "boot_and_native_kernels": 20.747210000000894,
+        "cold_render_and_initial_pan": 11.924255000002685,
+        "pan_sequences": 3.5356549999937386,
+        "cache_tour": 6.112785000003875,
+        "mixed_drawing": 22.081289999999107,
+        "hairlines": 16.642049999997013,
+        "export": 11.435035000003879,
+        "history": 8.572464999996129,
+        "settling": 4.496540000006547
+      },
+      "instructions": 9820325756,
+      "jitInstructions": 8443091638,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "verdict": "TINYDRAW_GATE1_AUTOMATED_DONE native_kernels=1 minimap_navigation=1 color_dialog=1 cooperative_compose=1 stress=1 stress_100=1 stress_400=1 overlap_ready=1 overlap_cold=1 general_cold_ready=1 general_cold=1 owner_document=1 workload=1 paced_cold=1 hard_100=1 hard_400=1 pan_100=1 pan_400=1 ring_local=1 pan_seq=1 pan_boundary=1 live_overlay=1 draw_fill=1 cache=1 full_world_cache=1 cache_tour=1 mixed_draw=1 idle_repair=1 ink_trace=1 hairline_capacity=1 long_gesture=1 history_latency=1 settle_timing=1 export_encode=1 export_reserve=1 return=1 ssaa_receipt=yellow",
+      "browser": "Chrome/152.0.7977.77",
+      "v8": "15.2.124.19",
+      "capture": "final-combined-1",
+      "generatedWasmBytes": 87535299,
+      "peakLiveGeneratedWasmBytes": 33846025,
+      "compilationFailures": 0
+    },
+    {
+      "wallSeconds": 107.3676649999991,
+      "intervalSeconds": {
+        "boot_and_native_kernels": 21.063405000001193,
+        "cold_render_and_initial_pan": 11.904124999999997,
+        "pan_sequences": 3.625254999995235,
+        "cache_tour": 6.386315000005062,
+        "mixed_drawing": 22.213439999997625,
+        "hairlines": 17.509039999999104,
+        "export": 11.60104500000179,
+        "history": 8.369490000002074,
+        "settling": 4.695364999994638
+      },
+      "instructions": 9820325756,
+      "jitInstructions": 8443091638,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "verdict": "TINYDRAW_GATE1_AUTOMATED_DONE native_kernels=1 minimap_navigation=1 color_dialog=1 cooperative_compose=1 stress=1 stress_100=1 stress_400=1 overlap_ready=1 overlap_cold=1 general_cold_ready=1 general_cold=1 owner_document=1 workload=1 paced_cold=1 hard_100=1 hard_400=1 pan_100=1 pan_400=1 ring_local=1 pan_seq=1 pan_boundary=1 live_overlay=1 draw_fill=1 cache=1 full_world_cache=1 cache_tour=1 mixed_draw=1 idle_repair=1 ink_trace=1 hairline_capacity=1 long_gesture=1 history_latency=1 settle_timing=1 export_encode=1 export_reserve=1 return=1 ssaa_receipt=yellow",
+      "browser": "Chrome/152.0.7977.77",
+      "v8": "15.2.124.19",
+      "capture": "final-combined-2",
+      "generatedWasmBytes": 87535299,
+      "peakLiveGeneratedWasmBytes": 33846025,
+      "compilationFailures": 0
+    },
+    {
+      "wallSeconds": 107.59875500000268,
+      "intervalSeconds": {
+        "boot_and_native_kernels": 21.087365000002087,
+        "cold_render_and_initial_pan": 12.279829999998213,
+        "pan_sequences": 3.7250949999988023,
+        "cache_tour": 6.069945000000303,
+        "mixed_drawing": 21.618670000001792,
+        "hairlines": 16.66201999999582,
+        "export": 11.748035000003881,
+        "history": 9.107634999997913,
+        "settling": 5.299975000001481
+      },
+      "instructions": 9820325756,
+      "jitInstructions": 8443091638,
+      "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+      "verdict": "TINYDRAW_GATE1_AUTOMATED_DONE native_kernels=1 minimap_navigation=1 color_dialog=1 cooperative_compose=1 stress=1 stress_100=1 stress_400=1 overlap_ready=1 overlap_cold=1 general_cold_ready=1 general_cold=1 owner_document=1 workload=1 paced_cold=1 hard_100=1 hard_400=1 pan_100=1 pan_400=1 ring_local=1 pan_seq=1 pan_boundary=1 live_overlay=1 draw_fill=1 cache=1 full_world_cache=1 cache_tour=1 mixed_draw=1 idle_repair=1 ink_trace=1 hairline_capacity=1 long_gesture=1 history_latency=1 settle_timing=1 export_encode=1 export_reserve=1 return=1 ssaa_receipt=yellow",
+      "browser": "Chrome/152.0.7977.77",
+      "v8": "15.2.124.19",
+      "capture": "final-combined-3",
+      "generatedWasmBytes": 87535299,
+      "peakLiveGeneratedWasmBytes": 33846025,
+      "compilationFailures": 0
+    }
+  ],
+  "total": {
+    "baseline": [
+      125.97571000000089,
+      124.57695500000567,
+      123.2340150000006
+    ],
+    "candidate": [
+      105.54746999999881,
+      107.3676649999991,
+      107.59875500000268
+    ],
+    "baselineMedian": 124.57695500000567,
+    "candidateMedian": 107.3676649999991,
+    "lessWallTimePercent": 13.814184172350153
+  },
+  "intervals": {
+    "boot_and_native_kernels": {
+      "baseline": [
+        21.30497999999672,
+        21.596410000003875,
+        22.024259999997913
+      ],
+      "candidate": [
+        20.747210000000894,
+        21.063405000001193,
+        21.087365000002087
+      ],
+      "baselineMedian": 21.596410000003875,
+      "candidateMedian": 21.063405000001193,
+      "lessWallTimePercent": 2.4680259358040857
+    },
+    "cold_render_and_initial_pan": {
+      "baseline": [
+        14.661624999999997,
+        14.976289999999107,
+        15.013010000005362
+      ],
+      "candidate": [
+        11.924255000002685,
+        11.904124999999997,
+        12.279829999998213
+      ],
+      "baselineMedian": 14.976289999999107,
+      "candidateMedian": 11.924255000002685,
+      "lessWallTimePercent": 20.379112583935033
+    },
+    "pan_sequences": {
+      "baseline": [
+        4.988575000002982,
+        4.657185000002386,
+        4.3413849999979135
+      ],
+      "candidate": [
+        3.5356549999937386,
+        3.625254999995235,
+        3.7250949999988023
+      ],
+      "baselineMedian": 4.657185000002386,
+      "candidateMedian": 3.625254999995235,
+      "lessWallTimePercent": 22.157805627361206
+    },
+    "cache_tour": {
+      "baseline": [
+        9.101280000001196,
+        8.088204999998212,
+        8.14749499999732
+      ],
+      "candidate": [
+        6.112785000003875,
+        6.386315000005062,
+        6.069945000000303
+      ],
+      "baselineMedian": 8.14749499999732,
+      "candidateMedian": 6.112785000003875,
+      "lessWallTimePercent": 24.973442757486996
+    },
+    "mixed_drawing": {
+      "baseline": [
+        26.911979999996717,
+        25.403289999999103,
+        25.50862000000477
+      ],
+      "candidate": [
+        22.081289999999107,
+        22.213439999997625,
+        21.618670000001792
+      ],
+      "baselineMedian": 25.50862000000477,
+      "candidateMedian": 22.081289999999107,
+      "lessWallTimePercent": 13.435967919883629
+    },
+    "hairlines": {
+      "baseline": [
+        20.474039999999107,
+        20.02165500000119,
+        19.50794999999553
+      ],
+      "candidate": [
+        16.642049999997013,
+        17.509039999999104,
+        16.66201999999582
+      ],
+      "baselineMedian": 20.02165500000119,
+      "candidateMedian": 16.66201999999582,
+      "lessWallTimePercent": 16.780006448044226
+    },
+    "export": {
+      "baseline": [
+        11.815285000003882,
+        12.433369999997325,
+        11.986039999999107
+      ],
+      "candidate": [
+        11.435035000003879,
+        11.60104500000179,
+        11.748035000003881
+      ],
+      "baselineMedian": 11.986039999999107,
+      "candidateMedian": 11.60104500000179,
+      "lessWallTimePercent": 3.2120283262641047
+    },
+    "history": {
+      "baseline": [
+        10.906924999997017,
+        11.294505000002673,
+        10.866030000001189
+      ],
+      "candidate": [
+        8.572464999996129,
+        8.369490000002074,
+        9.107634999997913
+      ],
+      "baselineMedian": 10.906924999997017,
+      "candidateMedian": 8.572464999996129,
+      "lessWallTimePercent": 21.403466146521833
+    },
+    "settling": {
+      "baseline": [
+        5.810780000001188,
+        6.1058799999952384,
+        5.839065000005064
+      ],
+      "candidate": [
+        4.496540000006547,
+        4.695364999994638,
+        5.299975000001481
+      ],
+      "baselineMedian": 5.839065000005064,
+      "candidateMedian": 4.695364999994638,
+      "lessWallTimePercent": 19.587040048525484
+    }
+  },
+  "scope": "Host wall time between firmware console milestones; includes setup and console delivery. Not isolated function timings, input latency or silicon cycle accuracy. Matching firmware/build inputs and absence of profiling must also be verified from capture provenance.",
+  "rawCaptureStorage": "Local ignored target/browser-speed-2026-09-05; raw event streams and console logs are not committed."
+}

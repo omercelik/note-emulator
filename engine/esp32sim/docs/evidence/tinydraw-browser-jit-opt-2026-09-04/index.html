@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>TinyDraw WASM battery</title>
+<style>body{font:15px monospace;background:#131823;color:#d9e5f5;margin:30px}pre{white-space:pre-wrap}#status{color:#91edc2}</style>
+<h1>TinyDraw battery · browser WASM</h1><p id="config">604 slots · AMOLED V2 · 16 MiB flash · 8 MiB PSRAM · JIT enabled</p>
+<p id="status">Starting…</p><pre id="console"></pre>
+<script type="module">
+if(new URLSearchParams(location.search).get('jit')==='0')document.querySelector('#config').textContent='604 slots · AMOLED V2 · 16 MiB flash · 8 MiB PSRAM · JIT disabled';
+const worker=new Worker('./worker.mjs'+location.search,{type:'module'});let serial='';let queue=[];
+let lastFlush=Promise.resolve();function flush(){if(!queue.length)return;const body=queue.map(e=>JSON.stringify(e)).join('\n')+'\n';queue=[];lastFlush=lastFlush.then(()=>fetch('/events',{method:'POST',body}));}
+worker.onmessage=({data:e})=>{queue.push(e);if(e.type==='serial'){serial+=e.data;document.querySelector('#console').textContent=serial.slice(-14000);}else if(e.type==='progress'){document.querySelector('#status').textContent=`${e.guestSeconds.toFixed(2)} simulated seconds / ${e.wallSeconds.toFixed(2)} elapsed seconds · ${e.frames} frames · ${e.jit?.compiled ?? 0} compiled blocks`;flush();}else if(e.type==='result'||e.type==='error'){document.querySelector('#status').textContent=JSON.stringify(e);flush();} };
+queue.push({type:'environment',userAgent:navigator.userAgent});
+</script>

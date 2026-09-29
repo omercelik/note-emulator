@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "id": "note4",
+  "name": "NOTE4",
+  "revision": "pcb-1.0",
+  "provenance": [
+    "github.com/itopinion/zectrix-note4-epd-demo@main docs/HARDWARE.md",
+    "github.com/itopinion/zectrix-note4-epd-demo@main components/zectrix_board/include/zectrix_board_config.h",
+    "github.com/itopinion/zectrix-note4-epd-demo@main components/zectrix_epd/zectrix_epd.cc"
+  ],
+  "soc": "esp32s3",
+  "flash_mib": 16,
+  "psram": {
+    "mib": 8,
+    "mode": "octal"
+  },
+  "display": {
+    "panel": "ssd2683",
+    "variant": "mono",
+    "width": 400,
+    "height": 300,
+    "format": "gray4",
+    "gray_levels": 16,
+    "spi_host": 3,
+    "pins": {
+      "power": 6,
+      "busy": 8,
+      "reset": 9,
+      "dc": 10,
+      "cs": 11,
+      "sclk": 12,
+      "mosi": 13
+    },
+    "readback_on_mosi": true
+  },
+  "buttons": [
+    {
+      "id": "ok",
+      "gpio": 0,
+      "active_low": true
+    },
+    {
+      "id": "up",
+      "gpio": 39,
+      "active_low": true
+    },
+    {
+      "id": "down",
+      "gpio": 18,
+      "active_low": true
+    }
+  ],
+  "leds": [
+    {
+      "id": "power",
+      "gpio": 3,
+      "active_low": true,
+      "color": "#3ddc84"
+    }
+  ],
+  "power": {
+    "battery_latch_gpio": 17,
+    "battery_adc": {
+      "gpio": 4,
+      "unit": 1,
+      "channel": 3,
+      "divider": 2.0
+    },
+    "charge_detect": {
+      "gpio": 2,
+      "charging_level": 0
+    },
+    "charge_full": {
+      "gpio": 1,
+      "full_level": null
+    }
+  },
+  "i2c": {
+    "sda": 47,
+    "scl": 48,
+    "devices": [
+      {
+        "kind": "pcf8563",
+        "address": 81,
+        "int_gpio": 5
+      },
+      {
+        "kind": "es8311",
+        "address": 24
+      },
+      {
+        "kind": "nfc",
+        "address": 85,
+        "supported": false
+      }
+    ]
+  },
+  "audio": {
+    "i2s": {
+      "mclk": 14,
+      "bclk": 15,
+      "ws": 38,
+      "dout": 45,
+      "din": 16
+    },
+    "rail_gpio": 42,
+    "amp_gpio": 46,
+    "sample_rate": 16000
+  },
+  "skin": {
+    "kind": "vector",
+    "canvas": 1024,
+    "bounds": {
+      "x": 40,
+      "y": 40,
+      "w": 947,
+      "h": 955
+    },
+    "screen": {
+      "x": 105,
+      "y": 102,
+      "w": 815,
+      "h": 613
+    },
+    "hit_areas": [
+      {
+        "button": "ok",
+        "shape": "circle",
+        "cx": 890,
+        "cy": 891,
+        "r": 66
+      },
+      {
+        "button": "up",
+        "shape": "rect",
+        "x": 962,
+        "y": 621,
+        "w": 28,
+        "h": 108,
+        "verified": false
+      },
+      {
+        "button": "down",
+        "shape": "rect",
+        "x": 962,
+        "y": 767,
+        "w": 28,
+        "h": 107,
+        "verified": false
+      }
+    ],
+    "source": "Vector redraw of the Zectrix product photo; geometry measured from the 2528 px photo",
+    "image": "skins/note-shell.svg",
+    "leds": [
+      {
+        "led": "power",
+        "cx": 776,
+        "cy": 879,
+        "r": 6
+      }
+    ]
+  }
+}

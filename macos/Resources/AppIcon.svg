@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- NOTE Emulator app icon (original artwork): an e-paper device, front-on, on a warm paper tile.
+       The screen shows a scene in the panel's four colours (black, white, yellow, red); the
+       speaker grille ends in the green status LED, and the round OK button sits bottom-right.
+       No filters: CoreSVG (scripts/svg2png.swift) renders plain shapes only. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbfbf8"/>
+      <stop offset="1" stop-color="#dcdcd4"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e6e7e3"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7f5ec"/>
+      <stop offset="1" stop-color="#ece9dd"/>
+    </linearGradient>
+    <radialGradient id="button" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dcddd8"/>
+    </radialGradient>
+  </defs>
+
+  <!-- macOS icon grid: 824 x 824 tile, 100 px margin -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)"/>
+  <rect x="100.5" y="100.5" width="823" height="823" rx="184.5" fill="none" stroke="#c4c4bc" stroke-width="2"/>
+
+  <!-- soft shadow under the device: ten faint layers, each larger and lower (no blur filter) -->
+  <rect x="208" y="198" width="608" height="608" rx="80" fill="#5a5a50" opacity="0.028"/>
+  <rect x="205" y="198" width="614" height="614" rx="83" fill="#5a5a50" opacity="0.028"/>
+  <rect x="202" y="198" width="620" height="620" rx="86" fill="#5a5a50" opacity="0.028"/>
+  <rect x="199" y="198" width="626" height="626" rx="89" fill="#5a5a50" opacity="0.028"/>
+  <rect x="196" y="198" width="632" height="632" rx="92" fill="#5a5a50" opacity="0.028"/>
+  <rect x="193" y="198" width="638" height="638" rx="95" fill="#5a5a50" opacity="0.028"/>
+  <rect x="190" y="198" width="644" height="644" rx="98" fill="#5a5a50" opacity="0.028"/>
+  <rect x="187" y="198" width="650" height="650" rx="101" fill="#5a5a50" opacity="0.028"/>
+  <rect x="184" y="198" width="656" height="656" rx="104" fill="#5a5a50" opacity="0.028"/>
+  <rect x="181" y="198" width="662" height="662" rx="107" fill="#5a5a50" opacity="0.028"/>
+
+  <!-- device shell -->
+  <rect x="212" y="196" width="600" height="600" rx="76" fill="url(#body)"/>
+  <rect x="213.5" y="197.5" width="597" height="597" rx="74.5" fill="none" stroke="#b7bab4" stroke-width="3"/>
+
+  <!-- e-paper panel -->
+  <rect x="252" y="236" width="520" height="388" rx="14" fill="#c9cbc5"/>
+  <rect x="262" y="246" width="500" height="368" rx="8" fill="url(#paper)"/>
+  <!-- the scene: sun, mountains, a red flag on the peak -->
+  <circle cx="660" cy="340" r="52" fill="#f1c40f" stroke="#1d1d1b" stroke-width="10"/>
+  <path d="M262 614 L262 520 L372 408 L444 482 L528 372 L644 500 L702 452 L762 512 L762 614 Z" fill="#1d1d1b"/>
+  <path d="M528 372 L528 318" stroke="#1d1d1b" stroke-width="8" stroke-linecap="round"/>
+  <path d="M532 320 L576 334 L532 350 Z" fill="#d6322b"/>
+  <path d="M372 408 L398 434 L386 446 L372 432 L356 446 L346 434 Z" fill="#f7f5ec"/>
+  <path d="M528 372 L560 410 L544 424 L528 406 L512 422 L498 408 Z" fill="#f7f5ec"/>
+
+  <!-- speaker grille (the rightmost hole is the status LED) -->
+  <g fill="#3a3c3d">
+    <circle cx="290" cy="690" r="9"/><circle cx="322" cy="690" r="9"/><circle cx="354" cy="690" r="9"/>
+    <circle cx="274" cy="722" r="9"/><circle cx="306" cy="722" r="9"/><circle cx="338" cy="722" r="9"/><circle cx="370" cy="722" r="9"/>
+    <circle cx="290" cy="754" r="9"/><circle cx="322" cy="754" r="9"/><circle cx="354" cy="754" r="9"/>
+  </g>
+  <circle cx="404" cy="722" r="13" fill="#34d27b" opacity="0.35"/>
+  <circle cx="404" cy="722" r="9" fill="#2fcf6f"/>
+
+  <!-- OK button -->
+  <circle cx="712" cy="722" r="56" fill="#c3c5bf"/>
+  <circle cx="712" cy="722" r="50" fill="url(#button)"/>
+  <circle cx="712" cy="722" r="50" fill="none" stroke="#b1b4ad" stroke-width="3"/>
+</svg>

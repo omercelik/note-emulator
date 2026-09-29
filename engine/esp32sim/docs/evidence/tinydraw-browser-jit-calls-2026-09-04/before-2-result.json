@@ -1,0 +1,24 @@
+{
+  "type": "result",
+  "status": "completed",
+  "stopCode": 0,
+  "verdict": "TINYDRAW_GATE1_AUTOMATED_DONE native_kernels=1 minimap_navigation=1 color_dialog=1 cooperative_compose=1 stress=1 stress_100=1 stress_400=1 overlap_ready=1 overlap_cold=1 general_cold_ready=1 general_cold=1 owner_document=1 workload=1 paced_cold=1 hard_100=1 hard_400=1 pan_100=1 pan_400=1 ring_local=1 pan_seq=1 pan_boundary=1 live_overlay=1 draw_fill=1 cache=1 full_world_cache=1 cache_tour=1 mixed_draw=1 idle_repair=1 ink_trace=1 hairline_capacity=1 long_gesture=1 history_latency=1 settle_timing=1 export_encode=1 export_reserve=1 return=1 ssaa_receipt=yellow",
+  "passed": true,
+  "guestSeconds": 47.75085146666667,
+  "wallSeconds": 138.5514750000015,
+  "setupSeconds": 0.0941549999974668,
+  "instructions": 9820325756,
+  "frames": 101,
+  "jit": {
+    "compiled": 7516,
+    "failed": 0,
+    "released": 5083,
+    "compileMs": 728.5100001208484,
+    "bytes": 59380584,
+    "liveBytes": 19283171,
+    "peakBytes": 21949707,
+    "peakModules": 2945,
+    "instructions": 4877588870
+  },
+  "logs": []
+}

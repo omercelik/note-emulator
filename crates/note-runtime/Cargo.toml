@@ -1,0 +1,16 @@
+[package]
+name = "note-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+note-core.workspace = true
+note-protocol.workspace = true
+note-machine.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+libc = "0.2"
+png = "0.17"
+addr2line = "0.24"

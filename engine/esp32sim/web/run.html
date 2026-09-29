@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="assets/esp32sim-logo-icon.png"><script>try{const t=localStorage.getItem('esp32sim-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}</script><script>if(!new URLSearchParams(location.search).has('plain')){const r=document.documentElement;r.classList.add('workbench-pending');setTimeout(()=>r.classList.remove('workbench-pending'),4000)}</script><title>esp32sim — ESP32 emulator</title>
+<style>
+  :root { --bg:#f4f4f5; --pcb:#efe9d8; --mod:#1d1f22; --mod2:#2b2e33; --fg:#1b1d20; --dim:#6b7280; --acc:#0ea5e9; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.4 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif; }
+  header { display:flex; gap:14px; align-items:center; padding:10px 18px; background:#fff; border-bottom:1px solid #e5e7eb; }
+  header h1 { font-size:15px; margin:0; font-weight:650; } .st { color:var(--dim); font-size:13px; }
+  main { display:grid; grid-template-columns: 620px 1fr; gap:18px; padding:18px; }
+  /* ---------- board ---------- */
+  .boardwrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .board { position:relative; width:560px; height:860px; background:var(--pcb); border:6px solid #111; border-radius:22px; }
+  .board .lbl { position:absolute; font:700 22px/1 "Courier New",monospace; color:#222; }
+  .slot { position:absolute; width:70px; height:70px; background:#2a2d31; border-radius:6px; }
+  .mod { position:absolute; background:var(--mod); border-radius:14px; box-shadow: inset 0 0 0 3px #000, 0 4px 10px rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; }
+  .mod .name { position:absolute; left:8px; top:6px; font-size:10px; color:#9aa; letter-spacing:.5px; }
+  .module { position:absolute; left:210px; top:150px; width:150px; height:520px; background:#f8f8f6; border:6px solid #111; border-radius:24px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+  .module .t { font:700 15px/1.2 "Courier New",monospace; text-align:center; color:#222; }
+  .module .chip { width:70px; height:70px; background:#333; border-radius:6px; margin-top:8px; }
+  .module .ant { width:80px; height:26px; border:3px solid #ccc; border-bottom:none; border-radius:4px 4px 0 0; }
+  .usbc { position:absolute; left:222px; top:690px; width:126px; height:126px; background:#131416; border-radius:14px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:10px; }
+  .usbc .port { width:56px; height:22px; border:3px solid #ddd; border-radius:11px; }
+  .usbc .name { position:absolute; top:8px; color:#9aa; font-size:10px; }
+  /* knob */
+  .knob { left:6px; top:6px; width:240px; height:240px; cursor:grab; }
+  .ring { position:absolute; inset:0; }
+  .cap { position:absolute; width:96px; height:96px; border-radius:50%; background:radial-gradient(circle at 38% 34%, #6d7278, #202326 70%); border:3px solid #0a0a0a; left:72px; top:72px; }
+  .cap .mark { position:absolute; left:50%; top:8px; width:5px; height:20px; margin-left:-2px; background:#e6e6e6; border-radius:3px; transform-origin:2.5px 40px; }
+  /* buttons */
+  .btn { width:112px; height:112px; left:132px; }
+  .btn .cell { width:96px; height:96px; background:#d9d9dc; border-radius:10px; display:flex; align-items:center; justify-content:center; box-shadow: inset 0 -5px 0 rgba(0,0,0,.25); cursor:pointer; user-select:none; }
+  .btn .cell:active, .btn .cell.down { transform:translateY(3px); box-shadow:inset 0 0 0 rgba(0,0,0,0); background:#cfd0d4; }
+  .btn .dot { width:52px; height:52px; border-radius:50%; background:#111; }
+  /* speaker */
+  .spk { left:6px; top:596px; width:240px; height:240px; }
+  .spk .cone { width:150px; height:150px; border-radius:50%; border:3px solid #333; display:flex; align-items:center; justify-content:center; }
+  .spk .grill { width:80px; height:70px; background: repeating-linear-gradient(#111 0 8px, #2b2e33 8px 14px); border-radius:40px; }
+  .spk meter { position:absolute; bottom:12px; left:40px; width:160px; height:10px; }
+  /* display */
+  .disp { left:437px; top:8px; width:114px; height:250px; }
+  .disp canvas { image-rendering:pixelated; border-radius:3px; background:#000; }
+  .disp .tag { position:absolute; right:6px; top:40px; writing-mode:vertical-rl; font-size:9px; color:#8a8f99; }
+  .empty { position:absolute; left:452px; width:90px; height:78px; background:#2a2d31; border-radius:8px; }
+  /* Light Grid V1.1 (NeoPixel 3x3) */
+  .lgrid .cells { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+  .lgrid i { display:block; width:20px; height:20px; border-radius:5px; background:#15171a; box-shadow:inset 0 0 0 1px #000; transition:background .06s linear; }
+  /* ---------- right pane ---------- */
+  .right { display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .tabs button { background:#f3f4f6; border:1px solid #e5e7eb; border-radius:8px; padding:6px 12px; cursor:pointer; }
+  .tabs button.on { background:#111; color:#fff; border-color:#111; }
+  #console { background:#0b0d10; color:#e6e6e6; border-radius:8px; height:420px; overflow:auto; padding:10px; font:12px/1.35 ui-monospace,Menlo,monospace; white-space:pre-wrap; word-break:break-all; }
+  #console .evt { color:#34d399; } #console .sim { color:#f59e0b; } #console .in { color:var(--acc); }
+  #console:focus { outline:2px solid var(--acc); outline-offset:1px; }
+  #console .cur { background:#e6e6e6; color:#0b0d10; }
+  input[type=text] { flex:1; min-width:260px; border:1px solid #e5e7eb; border-radius:8px; padding:7px 10px; font-family:ui-monospace,Menlo,monospace; }
+  button.act { background:#fff; border:1px solid #d1d5db; border-radius:8px; padding:6px 12px; cursor:pointer; }
+  button.act:hover { border-color:var(--acc); }
+  #tftbig { width:480px; height:240px; image-rendering:pixelated; background:#000; border-radius:6px; border:3px solid #222; }
+  .boardbtn { display:inline-block; padding:6px 14px; border-radius:8px; background:#d9d9dc; box-shadow: inset 0 -4px 0 rgba(0,0,0,.25); cursor:pointer; user-select:none; font-weight:600; }
+  .boardbtn.down { box-shadow: inset 0 2px 0 rgba(0,0,0,.35); transform: translateY(2px); }
+  .motecard { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border:1px solid #e5e7eb; border-radius:10px; margin-right:12px; }
+  .led { display:inline-block; width:18px; height:18px; border-radius:50%; background:#222; border:2px solid #555; margin-left:12px; }
+  .chips button { font-size:12px; padding:4px 10px; }
+.bare .boardwrap, .bare #tftcard, .bare #presets, .bare #presets + *, .bare .actions { display: none; }
+.bare main { grid-template-columns: 1fr; }
+.bare .right { max-width: 1100px; }
+#term { display:none; background:#0b0d10; border-radius:8px; padding:8px; height:436px; overflow:auto; }
+</style><link rel="stylesheet" href="vendor/xterm/xterm.css"><link rel="stylesheet" href="workbench.css"></head>
+<body>
+<script src="emu.js"></script>
+<script src="vendor/xterm/xterm.js"></script>
+<header><h1>ESP32 emulator</h1><span class="st" id="status">connecting…</span><span style="flex:1"></span>
+  <span class="st" id="stat"></span><button class="act" id="audioBtn">🔇 enable audio</button></header>
+<main>
+  <section class="boardwrap">
+    <div class="board">
+      <div class="lbl" style="left:374px; top:62px">7</div>
+      <div class="mod lgrid" id="grid7" style="left:250px; top:18px; width:112px; height:112px"><div class="name">Light V1.1</div><div class="cells"></div></div>
+      <div class="module"><div class="ant"></div><div class="t">ESP32‑S3<br>14‑port<br>Motherboard</div><div class="chip"></div></div>
+      <div class="usbc"><div class="name">USBC V1.1 · port 8</div><div class="port"></div></div>
+
+      <div class="mod knob" id="knob"><div class="name">Knob V1.1 · ports 1+2</div><canvas class="ring" id="ring" width="240" height="240"></canvas><div class="cap"><div class="mark" id="mark"></div></div></div>
+      <div class="mod btn" style="top:262px" id="btn1"><div class="name">Button V1.1 · port 3</div><div class="cell" data-pin="17"><div class="dot"></div></div></div>
+      <div class="mod btn" style="top:392px" id="btn2"><div class="name">Button V1.1 · port 4</div><div class="cell" data-pin="16"><div class="dot"></div></div></div>
+      <div class="mod spk"><div class="name">Speaker V1.1 · ports 5+6</div><div class="cone"><div class="grill"></div></div><meter id="vu" min="0" max="1" value="0"></meter></div>
+
+      <div class="mod disp"><div class="name">Screen V1.1 · 9+10</div><canvas id="tft" width="80" height="160" style="width:80px;height:160px"></canvas><div class="tag">Screen V1.1</div></div>
+      <div class="lbl" style="left:420px; top:344px">11</div>
+      <div class="mod lgrid" id="grid11" style="left:441px; top:316px; width:96px; height:96px"><div class="name">Light V1.1</div><div class="cells"></div></div>
+      <div class="lbl" style="left:462px; top:426px">12 <span style="font-size:11px">reset</span></div><div class="empty" style="top:446px"></div>
+      <div class="lbl" style="left:474px; top:556px">13</div><div class="empty" style="top:576px"></div>
+      <div class="lbl" style="left:474px; top:686px">14</div><div class="empty" style="top:706px"></div>
+    </div>
+    <div class="st">wheel / drag on the knob to turn · click the cap or press Space to push it · ←/→ keys turn</div>
+  </section>
+
+  <section class="right">
+    <div class="card" id="lcdpanel" style="display:none">
+      <div class="row"><strong>Panel</strong><span class="st" id="lcdstat">ST7701S 480×480 over the RGB bus — click/drag to touch</span><span style="flex:1"></span><label class="st">rotate <select id="lcdrot"><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></label></div>
+      <canvas id="lcd" width="480" height="480" style="margin-top:8px;width:480px;height:480px;border-radius:12px;background:#000;cursor:crosshair;touch-action:none"></canvas>
+      <div class="row" id="lcdextras" style="display:none;margin-top:8px"><span class="boardbtn" id="lcdboot" data-pin="9">BOOT</span><span class="st">press to switch all-channel / single-channel scan</span><span class="led" id="lcdled" title="WS2812"></span><span class="st">WS2812</span></div>
+    </div>
+    <div class="card" id="netpanel" style="display:none">
+      <div class="row"><strong>Network</strong><span class="st" id="netstat">two emulated ESP32-C6 motes on one 802.15.4 medium</span></div>
+      <div class="row" id="netnodes" style="margin-top:8px"></div>
+    </div>
+    <div class="card" id="campanel" style="display:none">
+      <div class="row"><strong>Camera</strong><span class="st">what the OV5640 sees — a picture file or your webcam (frames go to the DVP port at 10 fps)</span></div>
+      <div class="row" style="gap:8px;align-items:center;margin-top:6px">
+        <input type="file" id="camfile" accept="image/*"><button class="act" id="camwebcam">📷 use webcam</button><button class="act" id="camstop" style="display:none">stop webcam</button>
+        <span class="st" id="camstat"></span><meter id="vu2" min="0" max="1" value="0" style="width:120px" title="speaker"></meter><span class="st">speaker</span>
+      </div>
+      <canvas id="camcanvas" width="320" height="240" style="margin-top:8px;border-radius:6px;background:#111;max-width:100%"></canvas>
+      <video id="camvideo" autoplay playsinline muted style="display:none"></video>
+    </div>
+    <div class="card" id="tftcard"><div class="row"><strong>Display (readable)</strong><span class="st">ST7735 160×80, decoded from the bit‑banged SPI</span></div><canvas id="tftbig" width="160" height="80"></canvas></div>
+    <div class="card">
+      <div class="row tabs"><strong>Console</strong>
+        <button class="on chiptab" data-src="usb">USB‑CDC (Serial)</button><button class="chiptab" data-src="uart0">UART0 (ROM/bootloader)</button><button class="chiptab" data-src="term">Terminal (UART0, xterm.js)</button><button class="chiptab" data-src="all">both</button><button data-src="node0" class="nodetab" style="display:none">node 1</button><button data-src="node1" class="nodetab" style="display:none">node 2</button><button data-src="all" class="nodetab" style="display:none">both consoles</button>
+        <span style="flex:1"></span><button class="act" id="clear">clear</button></div>
+      <div id="console" tabindex="0" title="click, then type: keys go to the console shown"></div>
+      <div id="term"></div>
+      <div class="row" style="margin-top:4px"><span class="st" id="keyhint">click the console and type — keys go straight to the UART (Enter, Backspace, arrows, Ctrl‑C…); paste works too</span></div>
+      <div class="row" style="margin-top:8px"><input type="text" id="line" placeholder='a line for the console; Enter sends it'/><button class="act" id="send">send to USB‑CDC</button></div>
+      <div class="row chips" id="presets" style="margin-top:6px"><span class="st">actions:</span></div>
+    </div>
+  </section>
+</main>
+<script src="touch-input.js"></script>
+<script src="terminal.js"></script>
+<script src="workbench.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const con = $('#console'); let ws, view = 'usb', netInit = false, boardName = null; const lines = [];   // {src, text}
+let audioCtx = null, playHead = 0, audioLead = 0.06, underruns = 0, ctxRate = 44100, knobAngle = 0, ringLeds = new Array(12).fill([0,0,0]);
+const tft = $('#tft').getContext('2d'), tftbig = $('#tftbig').getContext('2d'), ringC = $('#ring').getContext('2d');
+// Light Grid V1.1 modules, one 3x3 of cells each, keyed by the port they sit in.
+const lgrids = {};
+for (const id of ['7', '11']) {
+  const cells = $('#grid' + id)?.querySelector('.cells'); if (!cells) continue;
+  lgrids[id] = Array.from({length: 9}, () => cells.appendChild(document.createElement('i')));
+}
+function drawGrid(id, leds) {
+  const cells = lgrids[id]; if (!cells) return;
+  leds.forEach((c, i) => {
+    if (!cells[i]) return;
+    // the module's driver caps brightness at 20% (51/255): on the board that reads as full
+    // saturation through the diffuser, so scale by 5 — a colour's ratios stay what the firmware set
+    const [r, g, b] = c.map(v => Math.min(255, v * 5)), on = r + g + b > 0;
+    cells[i].style.background = on ? `rgb(${r},${g},${b})` : '#15171a';
+    cells[i].style.boxShadow = on ? `0 0 14px 4px rgba(${r},${g},${b},.55)` : 'inset 0 0 0 1px #000';
+  });
+  // the grid sits behind one diffuser: what is lit tints the whole module
+  const sum = leds.reduce((a, c) => [a[0] + c[0], a[1] + c[1], a[2] + c[2]], [0, 0, 0]), n = leds.filter(c => c[0] + c[1] + c[2] > 0).length;
+  const mod = $('#grid' + id); if (mod) mod.style.background = n ? `rgba(${Math.min(255, sum[0] / n * 5)},${Math.min(255, sum[1] / n * 5)},${Math.min(255, sum[2] / n * 5)},${0.12 + 0.03 * n})` : '';
+}
+
+// ---- a real terminal on UART0 (terminal.js); the plain console tabs stay a line log
+const terminal = window.installTerminal($('#term'), send);
+function showTerm(on) { $('#term').style.display = on ? 'block' : 'none'; con.style.display = on ? 'none' : ''; $('#line').parentElement.style.display = on ? 'none' : ''; $('#keyhint').textContent = on ? 'a VT100 terminal on UART0 — click it and type; the guest can run `stty cols 100 rows 30` to match' : 'click the console and type — keys go straight to the UART (Enter, Backspace, arrows, Ctrl‑C…); paste works too';
+  if (on) terminal.show(lines.filter(l => l.src === terminal.src).map(l => l.text), ((addSerial.buf || {})[terminal.src] || '').replace(/\r$/, '')); }
+function render() {
+  if (view === 'term') return;
+  con.textContent = '';
+  for (const l of lines) {
+    if (view !== 'all' && l.src !== view) continue;
+    const d = document.createElement('span');
+    d.className = l.text.startsWith('SIM:') ? 'sim' : l.text.startsWith('{"type":"event"') ? 'evt' : l.text.startsWith('> ') ? 'in' : '';
+    d.textContent = (view === 'all' ? `[${l.src}] ` : '') + l.text + '\n'; con.appendChild(d);
+  }
+  const src = keySrc(), partial = ((addSerial.buf || {})[src] || '').replace(/\r$/, '');   // the prompt is a line without its newline
+  if (partial || document.activeElement === con) { const d = document.createElement('span'); d.textContent = partial; con.appendChild(d); const c = document.createElement('span'); c.className = 'cur'; c.textContent = ' '; con.appendChild(c); }
+  con.scrollTop = con.scrollHeight;
+}
+// A terminal's line editing on the unterminated line: backspace rubs out a character, a
+// carriage return with more text after it restarts the line; a trailing one is kept, it may be
+// the first half of a CR LF still in flight.
+function editLine(s) {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '\x08') out = out.slice(0, -1);
+    else if (ch === '\r') { if (i === s.length - 1) return out + '\r'; out = ''; }
+    else out += ch;
+  }
+  return out;
+}
+function addSerial(src, data) { data = data.replace(/\x1b\[[0-9;?]*[A-Za-z]|\x1b[()][A-Z0-9]|\x1b[=>]/g, '');
+  // split into lines, keep partial line per source
+  addSerial.buf = addSerial.buf || {}; let b = (addSerial.buf[src] || '') + data;
+  const parts = b.split('\n');
+  addSerial.buf[src] = editLine(parts.pop());
+  for (const p of parts) { lines.push({src, text: p.replace(/\r$/, '')}); }
+  while (lines.length > 2000) lines.shift();
+  render();
+}
+let link = null;   // the transport: a WebSocket to a native emulator, or the wasm worker (emu.js)
+function linkSend(d, timing) { if (link) link.send(d, timing); }
+function send(o) { linkSend(JSON.stringify(o)); }
+
+// Panel frames decode into lcdRaw at the controller's size and are painted onto #lcd rotated
+// clockwise by lcdRotation: a firmware that draws landscape into a portrait panel (pocket-tank)
+// reads upright. Touch maps back through panelPoint (touch-input.js), so the guest never sees it.
+// The rotation comes from ?rotate=, else the demo manifest's display_rotate, else 0, and the
+// selector in the panel's header changes it live.
+const lcdRaw = document.createElement('canvas');
+let lcdRotation = 0;
+function paintLcd() {
+  const c = $('#lcd'), w = lcdRaw.width, h = lcdRaw.height; if (!w || !h) return;
+  const quarter = lcdRotation === 90 || lcdRotation === 270, cw = quarter ? h : w, ch = quarter ? w : h;
+  if (c.width !== cw || c.height !== ch) { c.width = cw; c.height = ch; const s = Math.min(w, h) <= 240 ? 2 : 1; c.style.width = (cw * s) + 'px'; c.style.height = (ch * s) + 'px'; }
+  const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.save();
+  if (lcdRotation === 90) { ctx.translate(cw, 0); ctx.rotate(Math.PI / 2); }
+  else if (lcdRotation === 180) { ctx.translate(cw, ch); ctx.rotate(Math.PI); }
+  else if (lcdRotation === 270) { ctx.translate(0, ch); ctx.rotate(-Math.PI / 2); }
+  ctx.drawImage(lcdRaw, 0, 0); ctx.restore();
+}
+function setLcdRotation(deg) {
+  deg = [0, 90, 180, 270].includes(+deg) ? +deg : 0;
+  lcdRotation = deg; $('#lcdrot').value = String(deg); paintLcd();
+}
+function drawFrame(buf) {
+  const dv = new DataView(buf); const w = dv.getUint16(1, true), h = dv.getUint16(3, true);
+  if (w > 160) {   // a panel, not the Atech TFT
+    const c = $('#lcd'); if (c.style.display === 'none') { c.style.display = ''; $('#lcdstat').textContent = 'ST7789 172×320 over SPI2 + GDMA'; }   // the first frame: the firmware drives it after all
+    if (lcdRaw.width !== w || lcdRaw.height !== h) { lcdRaw.width = w; lcdRaw.height = h; }
+    const rctx = lcdRaw.getContext('2d'); const im = rctx.createImageData(w, h); const d = im.data;
+    for (let i = 0; i < w * h; i++) { const p = dv.getUint16(5 + i * 2, true); d[i*4] = (p >> 11) * 255 / 31; d[i*4+1] = ((p >> 5) & 63) * 255 / 63; d[i*4+2] = (p & 31) * 255 / 31; d[i*4+3] = 255; }
+    rctx.putImageData(im, 0, 0); paintLcd(); return;
+  }
+  const img = tftbig.createImageData(w, h); const px = img.data;
+  for (let i = 0; i < w * h; i++) { const p = dv.getUint16(5 + i * 2, true);
+    px[i*4] = (p >> 11) * 255 / 31; px[i*4+1] = ((p >> 5) & 63) * 255 / 63; px[i*4+2] = (p & 31) * 255 / 31; px[i*4+3] = 255; }
+  tftbig.putImageData(img, 0, 0);
+  // physical panel: portrait, content rotated 90° (as on the real module)
+  tft.save(); tft.clearRect(0, 0, 80, 160); tft.translate(0, 160); tft.rotate(-Math.PI / 2); tft.drawImage($('#tftbig'), 0, 0); tft.restore();
+}
+// The ring arrives in physical order, position 0 at 12 o'clock counting counter-clockwise: the
+// board model undoes the Knob V1.1's chain interleave (esp32s3 board, KNOB_RING_PHYSICAL).
+// A single WS2812 as a dot: the hue at full strength, the brightness as the glow. Firmware often
+// runs these at a few percent (the IDF blink example's 16/255 is plainly visible on a board),
+// and painting that value literally is a dot nobody can see.
+function paintLed(el, r, g, b) {
+  const m = Math.max(r, g, b);
+  if (m === 0) { el.style.background = '#222'; el.style.boxShadow = 'none'; return; }
+  const k = 255 / m, glow = Math.min(1, 0.35 + m / 255);
+  el.style.background = `rgb(${r * k | 0},${g * k | 0},${b * k | 0})`;
+  el.style.boxShadow = `0 0 ${6 + 10 * glow}px ${2 * glow}px rgba(${r * k | 0},${g * k | 0},${b * k | 0},${glow.toFixed(2)})`;
+}
+function drawRing() {
+  const c = ringC, cx = 120, cy = 120, R = 100; c.clearRect(0, 0, 240, 240);
+  // The firmware runs the ring at 20% brightness (50/255); through the light guide that is a
+  // saturated colour with a near-white core at the pointer, and everything lit bleeds faintly
+  // around the whole ring. Scale by 5 so the ratios stay what the firmware set.
+  const scaled = ringLeds.map(l => (l || [0, 0, 0]).map(v => Math.min(255, v * 5)));
+  let bleed = [0, 0, 0], peak = 0;
+  for (const l of scaled) { const s = l[0] + l[1] + l[2]; if (s > peak) { peak = s; bleed = l; } }
+  const lit = peak > 0;
+  c.beginPath(); c.arc(cx, cy, R, 0, 2 * Math.PI); c.strokeStyle = lit ? `rgba(${bleed[0]},${bleed[1]},${bleed[2]},.30)` : '#111'; c.lineWidth = 16; c.stroke();
+  for (let p = 0; p < 12; p++) {
+    const a = -Math.PI / 2 - p * Math.PI / 6, x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
+    const [r, g, b] = scaled[p] || [0, 0, 0]; const s = r + g + b, on = s > 0;
+    if (on) { c.shadowColor = `rgb(${r},${g},${b})`; c.shadowBlur = 18; }
+    c.beginPath(); c.arc(x, y, 7, 0, 2 * Math.PI);
+    c.fillStyle = on ? `rgb(${r},${g},${b})` : (lit ? `rgba(${bleed[0]},${bleed[1]},${bleed[2]},.35)` : '#2a2d31'); c.fill();
+    c.shadowBlur = 0;
+    // the brightest LED overexposes at its centre, as on the board
+    if (on && s === peak) { c.beginPath(); c.arc(x, y, 3.5, 0, 2 * Math.PI); c.fillStyle = `rgba(255,255,255,.75)`; c.fill(); }
+  }
+}
+function drawCamPreview(buf) {
+  const b = new Uint8Array(buf); const w = b[1] | (b[2] << 8), h = b[3] | (b[4] << 8); const c = $('#camcanvas'); if (!c) return;
+  const ctx = c.getContext('2d'); const img = ctx.createImageData(w, h); const d = img.data;
+  for (let i = 0, j = 5; i < w * h * 4; i += 4, j += 3) { d[i] = b[j]; d[i + 1] = b[j + 1]; d[i + 2] = b[j + 2]; d[i + 3] = 255; }
+  c.width = w; c.height = h; ctx.putImageData(img, 0, 0); const st = $('#camstat'); if (st && !st.textContent) st.textContent = 'picture from --cam-image';
+}
+function playAudio(buf) {
+  // [2][rate u32 le][int16le samples]: the rate is whatever the firmware programmed the I2S clock to
+  const rate = new DataView(buf).getUint32(1, true);
+  const n = (buf.byteLength - 5) / 2; if (n <= 0 || rate < 3000) return;
+  const i16 = new Int16Array(buf.slice(5)); let peak = 0; for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(i16[i]));
+  $('#vu').value = Math.min(1, peak / 4000); const vu2 = $('#vu2'); if (vu2) vu2.value = Math.min(1, peak / 4000);
+  if (!audioCtx) return;
+  const ab = audioCtx.createBuffer(1, n, rate); const ch = ab.getChannelData(0);
+  for (let i = 0; i < n; i++) ch[i] = i16[i] / 32768 * 8;   // firmware output is quiet (double volume scaling): boost 8x for monitoring
+  const src = audioCtx.createBufferSource(); src.buffer = ab; src.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  if (playHead < now + 0.01) {              // underrun: the emulator fell behind (busy firmware) — grow the buffer, up to 400 ms
+    underruns++; audioLead = Math.min(0.4, audioLead * 1.5); playHead = now + audioLead;
+  } else if (playHead > now + audioLead + 0.5) { playHead = now + audioLead; }   // runaway after a catch-up burst: drop the excess
+  src.start(playHead); playHead += n / rate;
+}
+// The line box's example and the tab title follow what is running: a demo manifest's line_hint
+// or the board's own protocol (the Atech synth takes JSON actions), and the demo's name from the
+// page's demo list (emu.js) or else the header the board sets.
+function lineHint(board) {
+  const demo = window.EmuLink && window.EmuLink.lineHint;
+  return demo || (board === 'atech14' ? '{"action":"set_note","value":"5"}' : 'a line for the console; Enter sends it');
+}
+function syncTitle() {
+  const demo = window.EmuLink && window.EmuLink.demoTitle;
+  document.title = demo ? demo + ' · esp32sim' : document.querySelector('h1').textContent;
+}
+function handleMessage(data) {
+    if (data instanceof ArrayBuffer) { const t = new Uint8Array(data)[0]; if (t === 1) drawFrame(data); else if (t === 2) playAudio(data); else if (t === 4) drawCamPreview(data); return; }
+    const m = JSON.parse(data);
+    if (m.t === 'board') window.dispatchEvent(new CustomEvent('esp32sim-board', { detail: m.name }));
+    if (m.t === 'serial') { if (m.src === terminal.src) terminal.write(m.data); addSerial(m.src, m.data); }
+    else if (m.t === 'emu') addSerial('usb', m.msg + '\n');
+    else if (m.t === 'board') { boardName = m.name; setLcdRotation(new URLSearchParams(location.search).get('rotate') ?? (window.EmuLink && window.EmuLink.displayRotate) ?? 0); document.body.classList.toggle('bare', m.name !== 'atech14'); $('#line').placeholder = lineHint(m.name); if (m.name === 'atech14') { document.querySelector('h1').textContent = 'ESP32‑S3 emulator — Atech 14‑port board'; } else if (m.name === 'esp32c3') { document.querySelector('h1').textContent = 'ESP32‑C3 emulator — RISC-V, console only'; } else if (m.name === 'esp32c6') { document.querySelector('h1').textContent = 'ESP32‑C6 emulator — RISC-V, console only'; } else if (m.name === 'waveshare-c6-lcd147') { document.querySelector('h1').textContent = 'ESP32‑C6 emulator — Waveshare ESP32‑C6‑LCD‑1.47'; $('#lcdpanel').style.display = ''; $('#lcdstat').textContent = 'ST7789 172×320 over SPI2 + GDMA — nothing drawn yet: this firmware has not written the display'; $('#lcd').style.display = 'none'; $('#lcdextras').style.display = ''; } else if (m.name === 'none') { document.querySelector('h1').textContent = 'ESP32‑S3 emulator — bare module'; document.querySelector(`.tabs button[data-src="${window.EmuLink && window.EmuLink.terminal ? 'term' : 'uart0'}"]`).click(); } if (m.name === 'waveshare-cam') { document.querySelector('h1').textContent = 'ESP32‑S3 emulator — Waveshare ESP32‑S3‑CAM‑OV5640'; $('#campanel').style.display = ''; } if (m.name === 'waveshare-lcd4b') { document.querySelector('h1').textContent = 'ESP32‑S3 emulator — Waveshare ESP32‑S3‑Touch‑LCD‑4B'; $('#lcdpanel').style.display = ''; }  syncTitle(); }
+    if (m.t === 'board' && m.name === 'waveshare-amoled18-v2') { document.querySelector('h1').textContent = 'ESP32‑S3 emulator, Waveshare ESP32‑S3‑Touch‑AMOLED‑1.8 V2'; $('#lcdstat').textContent = 'CO5300 368×448 over QSPI, click or drag to touch'; const lcd = $('#lcd'); const quarter = lcdRotation === 90 || lcdRotation === 270; lcd.style.width = (quarter ? 448 : 368) + 'px'; lcd.style.height = (quarter ? 368 : 448) + 'px'; $('#lcdpanel').style.display = ''; syncTitle(); }
+    else if (m.t === 'grid') { drawGrid(m.id, m.leds); }
+    else if (m.t === 'net') {
+      $('#netpanel').style.display = ''; document.body.classList.add('bare');
+      document.querySelectorAll('.nodetab').forEach(b => b.style.display = ''); document.querySelectorAll('.chiptab').forEach(b => b.style.display = 'none');
+      document.querySelector('h1').textContent = 'ESP32‑C6 network — ' + m.nodes.length + ' motes on one 802.15.4 medium'; syncTitle();
+      if (!netInit) { netInit = true; document.querySelector('.tabs button[data-src="node0"]').click(); }
+      $('#netstat').textContent = `t = ${m.sec.toFixed(1)} s` + (m.behind > 0.05 ? ` · ⚠ ${m.behind.toFixed(2)} s behind` : ' · real time');
+      const row = $('#netnodes');
+      if (row.children.length !== m.nodes.length) { row.innerHTML = m.nodes.map((_, i) => `<span class="motecard"><span class="led" id="netled${i}"></span><b>node ${i + 1}</b> <span class="st" id="netinfo${i}"></span></span>`).join(''); }
+      m.nodes.forEach((n, i) => {
+        const [r, g, b] = [(n.led >> 16) & 255, (n.led >> 8) & 255, n.led & 255];
+        paintLed($('#netled' + i), r, g, b);
+        $('#netinfo' + i).textContent = `sent ${n.tx} · heard ${n.rx}` + (n.dropped ? ` · ${n.dropped} lost` : '') + (n.halted ? ' · halted' : '');
+      });
+    }
+    else if (m.t === 'ring') { ringLeds = m.leds; drawRing(); if (m.leds.length === 1) { const [r, g, b] = m.leds[0]; paintLed($('#lcdled'), r, g, b); } }
+    else if (m.t === 'stat') { $('#stat').textContent = `t = ${m.time.toFixed(2)} s · ${(m.insns/1e6).toFixed(1)} M insns · ${m.frames} frames` + (m.speed == null ? '' : m.speed < 0.95 ? ` · ⚠ ${Math.floor(m.speed * 100)}% of real time` : ' · real time') + (m.resyncs ? ` · ${m.resyncs} resync` : '') + (m.cam ? ` · ${m.cam} camera frames` : ''); $('#stat').style.color = m.speed != null && m.speed < 0.95 ? '#f66' : ''; }
+}
+function connect() {
+  if (window.EmuLink) { link = window.EmuLink.connect(handleMessage, (s) => $('#status').textContent = s); return; }
+  ws = new WebSocket(`ws://${location.host}/ws`); ws.binaryType = 'arraybuffer';
+  ws.onopen = () => $('#status').textContent = 'connected';
+  ws.onclose = () => { $('#status').textContent = 'disconnected — retrying'; link = null; setTimeout(connect, 1000); };
+  ws.onmessage = ev => handleMessage(ev.data);
+  link = { send: (d) => { if (ws.readyState === 1) ws.send(d); } };
+}
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { document.querySelectorAll('.tabs button').forEach(x => x.classList.remove('on')); b.classList.add('on'); view = b.dataset.src; $('#send').textContent = keySrc() === 'uart0' ? 'send to UART0' : 'send to USB‑CDC'; showTerm(view === 'term'); render(); });
+document.querySelectorAll('.btn .cell, .boardbtn').forEach(el => {
+  const pin = +el.dataset.pin; let downAt = 0;
+  const down = v => { el.classList.toggle('down', v); if (v) { downAt = performance.now(); send({t:'btn', pin, v:1}); } else { setTimeout(() => send({t:'btn', pin, v:0}), Math.max(0, 60 - (performance.now() - downAt))); } };
+  el.onmousedown = () => down(true); el.onmouseup = el.onmouseleave = () => { if (el.classList.contains('down')) down(false); };
+});
+function turn(d) { knobAngle += d * 20; $('#mark').style.transform = `rotate(${knobAngle}deg)`; send({t:'knob', d}); }
+$('#knob').addEventListener('wheel', e => { e.preventDefault(); turn(e.deltaY > 0 ? 1 : -1); }, {passive:false});
+let dragX = null; $('#knob').onmousedown = e => { if (e.target.closest('.cap')) { send({t:'knobpress', v:1}); return; } dragX = e.clientX; };
+window.onmousemove = e => { if (dragX === null) return; const dx = e.clientX - dragX; if (Math.abs(dx) >= 14) { turn(dx > 0 ? 1 : -1); dragX = e.clientX; } };
+window.onmouseup = e => { dragX = null; if (e.target.closest('.cap')) send({t:'knobpress', v:0}); };
+// Space and the arrow keys drive the Atech knob: only on that board, and not when the key was
+// typed into something — a text box, the console, or the terminal — whose own handler took it.
+const knobKeys = e => boardName === 'atech14' && !e.defaultPrevented && !(e.target.closest && e.target.closest('input, textarea, #console, #term'));
+window.onkeydown = e => { if (!knobKeys(e)) return; if (e.key === 'ArrowRight') turn(1); if (e.key === 'ArrowLeft') turn(-1); if (e.key === ' ') { e.preventDefault(); send({t:'knobpress', v:1}); } };
+window.onkeyup = e => { if (e.key === ' ' && knobKeys(e)) send({t:'knobpress', v:0}); };
+// ---- keyboard on the console: which console the keys (and the line box) go to
+function keySrc() { return view === 'usb' ? 'usb' : view.startsWith('node') ? null : 'uart0'; }   // 'term' and 'all' type into UART0
+con.onkeydown = e => { const src = keySrc(), data = terminalKeyBytes(e); if (!src || data === null) return; e.preventDefault(); send({t:'key', src, data}); };
+con.onpaste = e => { const src = keySrc(); if (!src) return; e.preventDefault(); const text = (e.clipboardData || window.clipboardData).getData('text'); if (text) send({t:'key', src, data:text}); };
+con.onfocus = con.onblur = () => render();
+$('#send').onclick = () => { const l = $('#line').value.trim(); if (!l) return; const src = keySrc() || 'usb'; lines.push({src, text:'> ' + l}); render(); send({t:'serial', src, line:l}); };
+$('#line').onkeydown = e => { if (e.key === 'Enter') $('#send').click(); };
+$('#clear').onclick = () => { lines.length = 0; render(); };
+$('#audioBtn').onclick = async () => { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({sampleRate: ctxRate}); await audioCtx.resume(); $('#audioBtn').textContent = '🔊 audio on'; };
+const presets = [['set_note C','{"action":"set_note","value":"0"}'],['set_note A','{"action":"set_note","value":"5"}'],['octave 5','{"action":"set_octave","value":"5"}'],['trigger_note','{"action":"trigger_note","value":""}'],['chord','{"action":"play_chord_voices","value":""}'],['play_note 880','{"action":"play_note","value":"{\\"frequency\\":880,\\"duration\\":300}"}'],['volume 1.0','{"action":"set_volume","value":"1.0"}'],['ring red','{"action":"set_ring_color","value":"{\\"r\\":255,\\"g\\":0,\\"b\\":40}"}']];
+presets.forEach(([n, l]) => { const b = document.createElement('button'); b.className = 'act'; b.textContent = n; b.onclick = () => { $('#line').value = l; $('#send').click(); }; $('#presets').appendChild(b); });
+drawRing(); connect();
+// ---- touch panel: pointer -> sampled controller contact
+const touchTrace = new URLSearchParams(location.search).has('touchTrace')
+  ? (window.__esp32simTouchTrace = []) : null;
+window.recordTouchTrace = (entry) => {
+  if (!touchTrace) return;
+  if (touchTrace.length >= 2048) touchTrace.shift();
+  touchTrace.push(entry);
+};
+installTouchInput($('#lcd'), linkSend, { intervalMs: +(new URLSearchParams(location.search).get('touchms') ?? 8), trace: touchTrace ? window.recordTouchTrace : null, rotation: () => lcdRotation });
+$('#lcdrot').onchange = (e) => setLcdRotation(e.target.value);
+// ---- camera source (waveshare-cam): send RGBA frames as binary type 3
+const camCanvas = $('#camcanvas'), camCtx = camCanvas.getContext('2d'); let camStream = null, camTimer = null;
+function sendCamFrame() {
+  if (!link) return;
+  const w = camCanvas.width, h = camCanvas.height; const img = camCtx.getImageData(0, 0, w, h);
+  const buf = new Uint8Array(5 + w * h * 4); buf[0] = 3; buf[1] = w & 255; buf[2] = w >> 8; buf[3] = h & 255; buf[4] = h >> 8; buf.set(img.data, 5); linkSend(buf);
+}
+$('#camfile').onchange = (e) => { const f = e.target.files[0]; if (!f) return; const im = new Image(); im.onload = () => { camCtx.drawImage(im, 0, 0, camCanvas.width, camCanvas.height); sendCamFrame(); $('#camstat').textContent = `picture ${im.width}×${im.height} sent`; URL.revokeObjectURL(im.src); }; im.src = URL.createObjectURL(f); };
+$('#camwebcam').onclick = async () => {
+  try { camStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } }); } catch (e) { $('#camstat').textContent = 'webcam: ' + e.message; return; }
+  const v = $('#camvideo'); v.srcObject = camStream; $('#camwebcam').style.display = 'none'; $('#camstop').style.display = '';
+  camTimer = setInterval(() => { if (v.videoWidth) { camCtx.drawImage(v, 0, 0, camCanvas.width, camCanvas.height); sendCamFrame(); $('#camstat').textContent = 'webcam live'; } }, 250);
+};
+$('#camstop').onclick = () => { clearInterval(camTimer); if (camStream) camStream.getTracks().forEach(t => t.stop()); camStream = null; $('#camwebcam').style.display = ''; $('#camstop').style.display = 'none'; $('#camstat').textContent = 'webcam stopped (last frame stays)'; };
+</script>
+</body></html>

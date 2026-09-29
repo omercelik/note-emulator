@@ -1,0 +1,29 @@
+target/
+# the Atech firmware moved to github.com/joakimeriksson/atech-firmware; an existing
+# checkout keeps a local build tree here, which is no longer this repo's
+/boards/
+*.log
+!docs/evidence/**/*.log
+*.wav
+*.png
+!web/assets/*
+hw/*.bin
+hw/*.dump
+hw/*trace*.txt
+examples/hello_world/build/
+examples/hello_world-c3/build/
+examples/hello_world-c3/sdkconfig*
+examples/hello_world-c3/managed_components/
+examples/hello_world-c6/build/
+examples/hello_world-c6/sdkconfig*
+examples/hello_world-c6/managed_components/
+examples/hello_world/sdkconfig*
+examples/hello_world/managed_components/
+examples/wifi-station/build/
+*.actual
+__pycache__/
+.DS_Store
+web/wasm/esp32sim.wasm
+
+# fetched by tools/fetch-web-vendor.sh (xterm.js for the Terminal tab), not committed
+web/vendor/

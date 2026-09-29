@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "claim": {
+    "straightLineIssueCyclesPerInstruction": 1,
+    "independentAlignedSramAccessAdditiveCycles": 0,
+    "tier": "exact"
+  },
+  "scope": {
+    "chip": "ESP32-S3 QFN56",
+    "revision": "v0.2",
+    "espIdf": "v6.1",
+    "compiler": "xtensa-esp-elf 15.2.0",
+    "cpuHz": 240000000
+  },
+  "sources": {
+    "toolchainDelta": {
+      "sha256": "d4a4d3547598ede01573b94b5da3fdd1258d3f4e8161778acb4fd0423ac8a654"
+    },
+    "probeSource": {
+      "repository": "https://github.com/aliceisjustplaying/tinydraw.git",
+      "commit": "3db39856ecec411cbb7c4b697f6b47e65b5a8f2a",
+      "path": "esp32/main/timing_probe/sram_microprobes_esp32s3.S",
+      "sha256": "cb2d2a2ec9a2c808380f37fc17bb57165282694d49af34f812a8bdeccb292a79"
+    },
+    "rawReceiptArchives": [
+      {
+        "sha256": "14764620c67975eb4a6383f78d921dbbbcca06acdb5117cf78164426c3ed6287",
+        "issueCycles": 9234,
+        "independentL32Cycles": 9240,
+        "samplesPerCell": 100
+      },
+      {
+        "sha256": "4d43cb919c0bceeb7bc5b8389249b2a532ddc820b9fc0df62bc63b0a415198a1",
+        "issueCycles": 9234,
+        "independentL32Cycles": 9240,
+        "samplesPerCell": 100
+      },
+      {
+        "sha256": "9eb40b6b8714873e84666d30850e1616b72fdbbc6d0d73f5c6e40cf750b25a8e",
+        "issueCycles": 9234,
+        "independentL32Cycles": 9240,
+        "samplesPerCell": 100
+      },
+      {
+        "sha256": "5ca8183e8416c235113576d6fd7eb413d34167ca86663a62a23dcaef66f049b1",
+        "issueCycles": 9234,
+        "independentL32Cycles": 9240,
+        "samplesPerCell": 100
+      }
+    ],
+    "rawCells": [
+      "sram_instruction_issue_single_core.json",
+      "sram_l32_independent_single_core.json"
+    ]
+  },
+  "derivation": {
+    "issueObservedCycles": 9234,
+    "issueNonBodyCycles": 18,
+    "issueBodyInstructions": 9216,
+    "independentLoadObservedCycles": 9240,
+    "independentLoadNonBodyCycles": 24,
+    "independentLoadBodyInstructions": 9216,
+    "independentLoadAccesses": 8192,
+    "issueBodyCycles": 9216,
+    "independentLoadBodyCycles": 9216,
+    "formula": "(independentLoadBodyCycles - issueBodyCycles) / independentLoadAccesses",
+    "result": 0
+  },
+  "fixture": {
+    "file": "tinydraw-sram-kernel.bin",
+    "sha256": "d21db307c7be78ffa0bb82a3e1446219bc0eac22cd557fc633e28fd16cadaa8e",
+    "sourceElfSha256": "7f598fd3580cf52078fb6aa04a5f6fe5179b0de9d89bb6468fdb06ed5e40e424",
+    "tinyDrawCommit": "7a157d44a9da3312b1ecda2b45b116af2de28e63",
+    "vaddr": "0x4038645b",
+    "sourceElfOffset": "0x5b45b",
+    "length": 24
+  }
+}

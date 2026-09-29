@@ -1,0 +1,23 @@
+{
+  "measuredRuntimeCommit": "8df2f0ad35bdee878c7a3f24e25e66436911a79b",
+  "runtimeIdenticalAfterEvidenceCleanup": "b77afded7522dce41f6c95c810bfc59743ad5bfa",
+  "wasmDifferential": {
+    "command": "tools/wasm-jit-test.sh",
+    "passed": 38680,
+    "compiledModulesReleased": 36360
+  },
+  "workspace": {
+    "command": "ESP32SIM_ROM_DIR=<rom-directory> cargo test --release --workspace -- --include-ignored --skip external_",
+    "passed": 172,
+    "failed": 0,
+    "ignored": 0,
+    "externalFiltered": 7
+  },
+  "otherPassedCommands": [
+    "cargo clippy --workspace --all-targets -- -D warnings",
+    "node tools/worker-pacing-test.mjs",
+    "tools/wasm-build.sh",
+    "node tools/wasm-test.mjs hello c3-hello c6-hello c6-energy-scan panel"
+  ],
+  "rawLogs": "Local ignored target/speed-stack/work/validation; full logs are not committed."
+}

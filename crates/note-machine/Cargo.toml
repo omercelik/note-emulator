@@ -1,0 +1,22 @@
+[package]
+name = "note-machine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+note-core.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+esp32s3 = { path = "../../engine/esp32sim/esp32s3" }
+esp-soc = { path = "../../engine/esp32sim/esp-soc" }
+esp-periph = { path = "../../engine/esp32sim/esp-periph" }
+emu-core = { path = "../../engine/esp32sim/emu-core" }
+serde = { version = "1", features = ["derive"] }
+serde_derive = { version = "1", features = ["deserialize_in_place"] }
+xtensa-lx7 = { path = "../../engine/esp32sim/xtensa-lx7" }
+
+[dev-dependencies]
+sha2 = "0.10"
+aes-gcm = "0.10"
+hmac = "0.12"

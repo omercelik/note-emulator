@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!--
+    NOTE4 / NOTE4C front shell (both variants share the enclosure). Vector redraw of the
+    Zectrix product photos; coordinates were measured from the 2528 px photos and mapped
+    into this 1024 canvas (see Profiles/*.json "skin"). The screen window (105,102 815x613)
+    is left as a flat e-paper tone: the emulator draws the live frame over it.
+  -->
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fefefe"/>
+      <stop offset="0.6" stop-color="#f6f6f5"/>
+      <stop offset="1" stop-color="#e6e7e4"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#d9dad7"/>
+    </linearGradient>
+    <linearGradient id="wallTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c9cac7"/>
+      <stop offset="1" stop-color="#e2e3e0"/>
+    </linearGradient>
+    <linearGradient id="wallLeft" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c9cac7"/>
+      <stop offset="1" stop-color="#e2e3e0"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dcdddf"/>
+      <stop offset="1" stop-color="#e1e2e3"/>
+    </linearGradient>
+    <linearGradient id="edgeShade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#d4d5d2" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#a9aba7" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="sideShade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000" stop-opacity="0.05"/>
+      <stop offset="0.06" stop-color="#000" stop-opacity="0"/>
+      <stop offset="0.94" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.08"/>
+    </linearGradient>
+    <radialGradient id="okFace" cx="0.42" cy="0.38" r="0.7">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.7" stop-color="#f3f3f1"/>
+      <stop offset="1" stop-color="#e3e4e1"/>
+    </radialGradient>
+    <linearGradient id="okRing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c2c4c0"/>
+      <stop offset="1" stop-color="#7f827e"/>
+    </linearGradient>
+    <linearGradient id="sideKey" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d7d8d5"/>
+      <stop offset="1" stop-color="#f4f4f2"/>
+    </linearGradient>
+    <filter id="drop" x="-10%" y="-10%" width="120%" height="125%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="9"/>
+      <feOffset dy="7"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- side keys (UP upper, DOWN lower), partly behind the body -->
+  <g id="side-keys">
+    <rect x="966" y="621" width="19" height="108" rx="7" fill="url(#sideKey)" stroke="#9fa19d" stroke-width="1.4"/>
+    <rect x="966" y="767" width="19" height="107" rx="7" fill="url(#sideKey)" stroke="#9fa19d" stroke-width="1.4"/>
+  </g>
+
+  <!-- body; the band below it is the lower side wall seen at a slight angle -->
+  <rect x="42" y="47" width="935" height="946" rx="54" fill="#dfe0de"/>
+  <g filter="url(#drop)">
+    <rect x="41" y="41" width="937" height="946" rx="54" fill="url(#body)"/>
+  </g>
+  <rect x="41" y="41" width="937" height="946" rx="54" fill="url(#sideShade)"/>
+  <rect x="43" y="43" width="933" height="942" rx="52" fill="none" stroke="url(#edgeShade)" stroke-width="4"/>
+  <rect x="41.5" y="41.5" width="936" height="945" rx="53.5" fill="none" stroke="#868884" stroke-width="2.4"/>
+
+  <!-- screen recess: lit from the top-left, so only the top and left walls show -->
+  <g id="recess">
+    <rect x="88" y="88" width="834" height="629" rx="8" fill="#dcddda"/>
+    <path d="M96 88 H914 a8 8 0 0 1 8 8 V102 H105 V717 H96 a8 8 0 0 1 -8 -8 V96 a8 8 0 0 1 8 -8 Z" fill="url(#wallTop)"/>
+    <path d="M88 102 H105 V717 H96 a8 8 0 0 1 -8 -8 Z" fill="url(#wallLeft)"/>
+    <rect id="screen" x="105" y="102" width="815" height="613" fill="url(#paper)"/>
+    <rect x="88.5" y="88.5" width="833" height="628" rx="8" fill="none" stroke="#bfc1bd" stroke-width="1.4"/>
+    <path d="M922 100 V709 a8 8 0 0 1 -8 8 H100" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-opacity="0.9" transform="translate(1.8 1.8)"/>
+  </g>
+
+  <!-- speaker grille: rows of 6, 8, 6 holes on a 27.4 pitch -->
+  <g id="speaker">
+    <g transform="translate(0 858.2)">
+      <circle cx="143.7" r="4.3" fill="#2e3031"/><circle cx="171.1" r="4.3" fill="#2e3031"/><circle cx="198.6" r="4.3" fill="#2e3031"/>
+      <circle cx="226.1" r="4.3" fill="#2e3031"/><circle cx="253.5" r="4.3" fill="#5d5f60"/><circle cx="280.9" r="4.3" fill="#9a9c9d"/>
+    </g>
+    <g transform="translate(0 879.2)">
+      <circle cx="115.9" r="4.3" fill="#9fa1a2"/><circle cx="143.7" r="4.3" fill="#2e3031"/><circle cx="171.1" r="4.3" fill="#2e3031"/><circle cx="198.6" r="4.3" fill="#2e3031"/>
+      <circle cx="226.1" r="4.3" fill="#2e3031"/><circle cx="253.5" r="4.3" fill="#5d5f60"/><circle cx="280.9" r="4.3" fill="#9a9c9d"/><circle cx="307.1" r="4.3" fill="#b9bbbc"/>
+    </g>
+    <g transform="translate(0 900.2)">
+      <circle cx="143.7" r="4.3" fill="#2e3031"/><circle cx="171.1" r="4.3" fill="#2e3031"/><circle cx="198.6" r="4.3" fill="#2e3031"/>
+      <circle cx="226.1" r="4.3" fill="#2e3031"/><circle cx="253.5" r="4.3" fill="#5d5f60"/><circle cx="280.9" r="4.3" fill="#9a9c9d"/>
+    </g>
+  </g>
+
+  <!-- status LED window (lit by the app when the profile has an LED) -->
+  <circle id="led" cx="776" cy="879" r="4.2" fill="#a9aca8"/>
+
+  <!-- OK / BOOT button -->
+  <g id="ok-button">
+    <circle cx="890" cy="891" r="66" fill="url(#okRing)"/>
+    <circle cx="890" cy="891" r="62" fill="#e8e9e6"/>
+    <circle cx="890" cy="892.5" r="57" fill="url(#okFace)"/>
+  </g>
+</svg>

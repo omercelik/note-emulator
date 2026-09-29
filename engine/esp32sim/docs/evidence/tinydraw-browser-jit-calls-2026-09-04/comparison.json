@@ -1,0 +1,54 @@
+{
+  "before": {
+    "seconds": [
+      138.37289499999955,
+      138.5514750000015,
+      138.4022199999988
+    ],
+    "medianSeconds": 138.4022199999988,
+    "minSeconds": 138.37289499999955,
+    "maxSeconds": 138.5514750000015,
+    "jit": {
+      "compiled": 7516,
+      "failed": 0,
+      "released": 5083,
+      "compileMs": 693.5399999544024,
+      "bytes": 59380584,
+      "liveBytes": 19283171,
+      "peakBytes": 21949707,
+      "peakModules": 2945,
+      "instructions": 4877588870
+    }
+  },
+  "after": {
+    "seconds": [
+      132.35327500000224,
+      132.27571000000088,
+      133.2033299999982
+    ],
+    "medianSeconds": 132.35327500000224,
+    "minSeconds": 132.27571000000088,
+    "maxSeconds": 133.2033299999982,
+    "jit": {
+      "compiled": 10634,
+      "failed": 0,
+      "released": 6978,
+      "compileMs": 908.9950003102422,
+      "bytes": 63104875,
+      "liveBytes": 21020531,
+      "peakBytes": 23662609,
+      "peakModules": 4337,
+      "instructions": 6023686459
+    }
+  },
+  "wallTimeReductionPercent": 4.37055489427598,
+  "throughputMultiplier": 1.0457030247267887,
+  "realtimeRatio": 0.3607833011058159,
+  "remainingThroughputMultiplier": 2.7717469099455494,
+  "interpreterSeconds": 159.1222650000006,
+  "guestSeconds": 47.75085146666667,
+  "instructions": 9820325756,
+  "consoleSha256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+  "booleanGates": 36,
+  "allConsolesIdentical": true
+}

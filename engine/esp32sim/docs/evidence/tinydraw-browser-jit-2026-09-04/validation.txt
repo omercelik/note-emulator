@@ -1,0 +1,6 @@
+167 release/golden tests passed: cargo test --release --workspace -- --include-ignored --skip external_
+2762 actual-WASM differential cases passed: tools/wasm-jit-test.sh
+WASM smoke manifests passed: hello c3-hello c6-hello c6-energy-scan panel
+Native workspace Clippy and WASM jit-tests Clippy passed with -D warnings.
+Browser UI module worker booted hello_world and displayed its console.
+JIT and interpreter TinyDraw USB consoles are byte-identical.

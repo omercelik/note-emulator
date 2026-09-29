@@ -1,0 +1,49 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0xf (SPI_FAST_FLASH_BOOT)
+configspi:0x00000008
+SPIWP:0x00
+mode:DIO, clock div:1
+load:0x3fce3808,len:0x41c
+load:0x403c9700,len:0x9a8
+load:0x403cc700,len:0x28ac
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0xf (SPI_FAST_FLASH_BOOT)
+configspi:0x00000008
+SPIWP:0x00
+mode:DIO, clock div:1
+load:0x3fce3808,len:0x41c
+load:0x403c9700,len:0x9a8
+load:0x403cc700,len:0x28ac
+entry 0x403c98b8
+entry 0x403c98b8
+Initializing...
+
+================ ATECH BOOT ================
+  Boot count : 1
+  Reset cause: POWERON (1)
+  Free heap  : 362328 bytes
+  Min heap   : 357108 bytes (lowest since boot)
+  CPU freq   : 240 MHz
+============================================
+[sid] 4 tunes embedded, C64 allocated on demand (free heap 348452)
+ST7735 display initialized (160x80, double-buffered)
+[RotaryEncoder] Ring initialized on pin 8
+[Atech] Transport: USB-Serial
+Setup complete!
+FreeRTOS tasks started!
+{"type":"event","payload":{"event_type":"button","key":"button_press","value":1,"source":"user"}}
+{"type":"event","payload":{"event_type":"state","key":"note_triggered","value":"C4","source":"user"}}
+{"type":"event","payload":{"event_type":"button","key":"button_release","value":0,"source":"user"}}
+{"type":"event","payload":{"event_type":"sensor","key":"knob_position","value":1,"source":"rotary_encoder_knob"}}
+{"type":"event","payload":{"event_type":"sensor","key":"knob_position","value":5,"source":"rotary_encoder_knob"}}
+{"type":"event","payload":{"event_type":"button","key":"button_press","value":1,"source":"user"}}
+{"type":"event","payload":{"event_type":"state","key":"note_triggered","value":"A4","source":"user"}}
+{"type":"event","payload":{"event_type":"button","key":"button_release","value":0,"source":"user"}}
+{"type":"event","payload":{"event_type":"button","key":"button_press","value":1,"source":"user"}}
+{"type":"event","payload":{"event_type":"state","key":"waveform","value":"SAW","source":"user"}}
+{"type":"event","payload":{"event_type":"button","key":"button_release","value":0,"source":"user"}}
+{"type":"event","payload":{"event_type":"button","key":"button_press","value":1,"source":"user"}}
+{"type":"event","payload":{"event_type":"state","key":"note_triggered","value":"E+4","source":"user"}}
+{"type":"event","payload":{"event_type":"button","key":"button_release","value":0,"source":"user"}}

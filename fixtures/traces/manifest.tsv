@@ -1,0 +1,4 @@
+id	source	seconds	lines	frames	sha256
+note4c-factory	.device-backup/factory-2026-09-23.bin	45	430	1	d408060b7c3568f39aa435077b78ac18a0006c14454a0b564de9b520832db970
+emini-home-legacy	.device-tools/emini-home/firmware/build-emulator	45	418	1	a73024275b07141fa9ea82b6df638c42515d6e6b7cd24d1a31046aeafd71da58
+friday-legacy	.device-tools/friday-source/build-emulator	45	380	1	88602075bddc1aca9c09ce1564a773fdf2976fddf8de8c279bb002240acd1084

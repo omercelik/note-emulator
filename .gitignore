@@ -1,0 +1,18 @@
+# Build output
+/target/
+/engine/esp32sim/target/
+/macos/.build/
+/dist/
+*.actual
+
+# Local-only tools, ROMs, downloaded and private firmware (see reference/hashes.toml)
+/.tools/
+
+# Never commit device state or captures: they can contain credentials
+*.img
+/fixtures/traces/private/
+
+.DS_Store
+
+# Development notes and the private firmware inventory: kept locally, never published
+/.notes/

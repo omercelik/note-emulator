@@ -1,0 +1,9 @@
+[package]
+name = "riscv-rv32"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "RV32IMC interpreter for the ESP32-C3's single RISC-V core"
+
+[dependencies]
+emu-core = { path = "../emu-core" }

@@ -1,0 +1,9 @@
+{
+  "type": "environment",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+  "hostChip": "Apple M1 Pro",
+  "os": "macOS 27.0 (26A5425a)",
+  "browser": "Codex in-app Chromium 152",
+  "execution": "unpaced dedicated Web Worker; ordinary scheduler with 2,000,000-cycle slices; JIT enabled/disabled comparison; no native execution",
+  "simulatorChanges": "scheduler-integrated WASM block backend and persistent decoded cache"
+}

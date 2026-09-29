@@ -1,0 +1,16 @@
+{
+ "board": "waveshare-lcd4b",
+ "flash_mb": 16,
+ "psram_mb": 8,
+ "files": {
+  "rom": "esp32s3_rev0_rom.elf",
+  "bootloader": "public/panel-bootloader.bin",
+  "ptable": "public/panel-ptable.bin",
+  "app": "public/panel-demo.bin"
+ },
+ "flash_at": {
+  "0x610000": "public/energydata.json"
+ },
+ "_note": "energydata.json in the demo partition puts the firmware in demo mode: fixed clock, canned prices/energy/tiles, WiFi never started",
+ "expect": "main: up"
+}

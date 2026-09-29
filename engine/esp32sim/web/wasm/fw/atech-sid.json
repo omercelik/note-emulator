@@ -1,0 +1,15 @@
+{
+ "board": "atech14",
+ "expect": "[Atech] Transport: USB-Serial",
+ "flash_mb": 8,
+ "psram_mb": 2,
+ "files": {
+  "rom": "esp32s3_rev0_rom.elf",
+  "bootloader": "public/atech-bootloader.bin",
+  "ptable": "public/atech-ptable.bin",
+  "app": "public/atech-firmware.bin",
+  "script": "public/atech-sid.txt"
+ },
+ "_source": "https://github.com/joakimeriksson/atech-firmware @ 5ff42e1 — `make dist APP=pocket-synth`.",
+ "_note": "Same firmware, jukebox mode: cRSID runs a whole emulated C64 and plays real .sid tunes."
+}

@@ -1,0 +1,16 @@
+[package]
+name = "note-emu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+libc = "0.2"
+sha2.workspace = true
+note-core.workspace = true
+note-machine.workspace = true
+esp32s3 = { path = "../../engine/esp32sim/esp32s3" }
+note-runtime.workspace = true
+note-net-helper = { path = "../note-net-helper" }
+clap = { version = "4", features = ["derive"] }
+png = "0.17"

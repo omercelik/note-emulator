@@ -1,0 +1,10 @@
+[package]
+name = "emu-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "What every emulated CPU shares: the bus contract, the Core trait, traps, clocks, and the AArch64 encoder"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_derive = { version = "1", features = ["deserialize_in_place"] }

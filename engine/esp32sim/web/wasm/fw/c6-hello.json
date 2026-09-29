@@ -1,0 +1,12 @@
+{
+ "board": "esp32c6",
+ "flash_mb": 4,
+ "psram_mb": 0,
+ "files": {
+  "rom": "esp32c6_rev0_rom.elf",
+  "bootloader": "public/c6-hello-bootloader.bin",
+  "ptable": "public/c6-hello-ptable.bin",
+  "app": "public/c6-hello_world.bin"
+ },
+ "_note": "ESP32-C6 (RISC-V, RV32IMAC). Console-only: real mask ROM, real 2nd-stage bootloader, FreeRTOS, app_main, esp_restart, repeat."
+}

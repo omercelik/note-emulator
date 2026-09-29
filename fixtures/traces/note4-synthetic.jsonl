@@ -1,0 +1,8 @@
+{"op":"meta","profile":"note4","format":"gray4","w":4,"h":2}
+{"op":"console","t_ns":0,"ch":"uart0","text":"boot\n"}
+{"op":"console","t_ns":0,"ch":"usb","text":"boot\n"}
+{"op":"console","t_ns":1000000,"ch":"uart0","text":"I (1) app: ready\n"}
+{"op":"console","t_ns":1000000,"ch":"uart0","text":"I (1) app: ready\n"}
+{"op":"frame","t_ns":1000000,"hex":"01234567"}
+{"op":"on","button":"ok","down":true,"ch":"uart0","text":"I (2) btn: ok\n","hex":"89abcdef"}
+{"op":"on","button":"up","down":true,"ch":"uart0","text":"I (3) btn: up\n","hex":"00001111"}

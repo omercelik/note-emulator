@@ -1,0 +1,6 @@
+{"type":"done","t":0,"wake":1000000,"out":[]}
+{"type":"done","t":1000000,"wake":null,"out":[{"type":"radio","t":20000,"state":"rx","ch":11}]}
+{"type":"done","t":2864050,"wake":3864050,"out":[{"type":"tx","t":2864050,"ch":11,"frame":"41d801ffffffff010101000174120007000000"},{"type":"radio","t":2864050,"state":"tx","ch":11}]}
+{"type":"done","t":4000000,"wake":null,"out":[{"type":"radio","t":3748043,"state":"rx","ch":11}]}
+{"type":"done","t":5864050,"wake":6864050,"out":[{"type":"tx","t":5864050,"ch":11,"frame":"41d801ffffffff010101000174120007000000"},{"type":"radio","t":5864050,"state":"tx","ch":11}]}
+{"type":"done","t":7000000,"wake":null,"out":[{"type":"radio","t":6748043,"state":"rx","ch":11}]}

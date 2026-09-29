@@ -1,0 +1,39 @@
+Sampled interval: 141.093 s; exclusive samples, not inclusive call-tree totals.
+  43.982 s  31.2%  block dispatch / interpreted loop
+  35.756 s  25.3%  other
+  25.862 s  18.3%  generated blocks
+  17.974 s  12.7%  interpreter instruction execution
+  10.999 s   7.8%  machine block wrapper
+   6.520 s   4.6%  PIE and 128-bit helpers
+
+Largest exclusive functions:
+  43.982 s  _RINvNtCsbqoFkXOIZKP_10xtensa_lx75block15run_block_innerNtNtCs8QzSBGVv86B_7esp32s33bus6SocBusECshyqpGD0CtxZ_13esp32sim_wasm  wasm://wasm/esp32sim_wasm.wasm-01cea396
+  17.974 s  _RINvNtCsbqoFkXOIZKP_10xtensa_lx74exec9exec_insnNtNtCs8QzSBGVv86B_7esp32s33bus6SocBusECshyqpGD0CtxZ_13esp32sim_wasm  wasm://wasm/esp32sim_wasm.wasm-01cea396
+  10.999 s  _RNvMs0_NtCs8n3wqGlZdA3_7esp_soc7machineINtB5_7MachineNtNtCs8QzSBGVv86B_7esp32s33soc2S3E11step_blocksCshyqpGD0CtxZ_13esp32sim_wasm  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   8.891 s  _RNvMNtCsbqoFkXOIZKP_10xtensa_lx74execNtNtB4_5state3Cpu14check_overflow  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   6.482 s  _RNvXCshyqpGD0CtxZ_13esp32sim_wasmINtNtCs8n3wqGlZdA3_7esp_soc7machine7MachineNtNtCs8QzSBGVv86B_7esp32s33soc2S3ENtB2_10MachineApi9run_sliceB2_  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   2.879 s  _RNvXs_NtCs8QzSBGVv86B_7esp32s33busNtB4_6SocBusNtNtCsfEsNy1O7Gf9_8emu_core3bus3Bus6read32  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   2.537 s  _RINvNtCsbqoFkXOIZKP_10xtensa_lx73pie4execNtNtCs8QzSBGVv86B_7esp32s33bus6SocBusECshyqpGD0CtxZ_13esp32sim_wasm  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   2.154 s  _RNvMNtCsbqoFkXOIZKP_10xtensa_lx74execNtNtB4_5state3Cpu16check_interrupts  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   1.961 s  _RNvNtNtCsbqoFkXOIZKP_10xtensa_lx73jit6native5ready  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   1.625 s  _RNvXs_NtCs8QzSBGVv86B_7esp32s33busNtB4_6SocBusNtNtCsfEsNy1O7Gf9_8emu_core3bus3Bus7write32  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   1.607 s  _RNvXs0_NtCsjG2Vj6iG9HZ_10esp_periph4gpioNtB5_4GpioNtNtB7_6device6Device11irq_sources  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   1.553 s  (idle)  
+   1.479 s  wasm-function[0]  wasm://wasm/2e57d46a
+   1.278 s  _RNvNtCsbqoFkXOIZKP_10xtensa_lx73pie7extract  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   0.926 s  _RNvMs0_NtCs8n3wqGlZdA3_7esp_soc7machineINtB5_7MachineNtNtCs8QzSBGVv86B_7esp32s33soc2S3E16after_round_restCshyqpGD0CtxZ_13esp32sim_wasm  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   0.890 s  _RNvMNtCsbqoFkXOIZKP_10xtensa_lx73pieNtB2_3Ops3get  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   0.884 s  _RNvMs0_NtCs8QzSBGVv86B_7esp32s33busNtB5_6SocBus11flush_ticks  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   0.827 s  wasm-function[0]  wasm://wasm/55236742
+   0.774 s  _RNvMsl_NtCs8QzSBGVv86B_7esp32s36periphNtB5_11Peripherals4tick  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   0.743 s  __ashlti3  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   0.625 s  Module  
+   0.612 s  wasm-function[0]  wasm://wasm/19db15c6
+   0.593 s  wasm-function[0]  wasm://wasm/0002caf2
+   0.573 s  __lshrti3  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   0.545 s  _RNvNtCs8n3wqGlZdA3_7esp_soc3web11json_escape  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   0.499 s  _RINvNtCsbqoFkXOIZKP_10xtensa_lx73pie2ldNtNtCs8QzSBGVv86B_7esp32s33bus6SocBusECshyqpGD0CtxZ_13esp32sim_wasm  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   0.467 s  RegExp: Guru Meditation|TG1WDT_SYS_RST|stack overflow|task_wdt  
+   0.435 s  wasm-function[0]  wasm://wasm/00016f4a
+   0.315 s  _RNvMsl_NtCs8QzSBGVv86B_7esp32s36periphNtB5_11Peripherals13source_status  wasm://wasm/esp32sim_wasm.wasm-01cea396
+   0.313 s  wasm-function[0]  wasm://wasm/3bb577c6

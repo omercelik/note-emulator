@@ -1,0 +1,38 @@
+Sampled interval: 12.027 s; exclusive samples, not inclusive call-tree totals.
+   7.441 s  61.9%  other
+   1.831 s  15.2%  block dispatch / interpreted loop
+   1.400 s  11.6%  generated blocks
+   0.858 s   7.1%  interpreter instruction execution
+   0.497 s   4.1%  machine block wrapper
+
+Largest exclusive functions:
+   4.603 s  (idle)  
+   1.831 s  _RINvNtCsbqoFkXOIZKP_10xtensa_lx75block15run_block_innerNtNtCs8QzSBGVv86B_7esp32s33bus6SocBusECshyqpGD0CtxZ_13esp32sim_wasm  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.858 s  _RINvNtCsbqoFkXOIZKP_10xtensa_lx74exec9exec_insnNtNtCs8QzSBGVv86B_7esp32s33bus6SocBusECshyqpGD0CtxZ_13esp32sim_wasm  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.497 s  _RNvMs0_NtCs8n3wqGlZdA3_7esp_soc7machineINtB5_7MachineNtNtCs8QzSBGVv86B_7esp32s33soc2S3E11step_blocksCshyqpGD0CtxZ_13esp32sim_wasm  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.377 s  _RNvMNtCsbqoFkXOIZKP_10xtensa_lx74execNtNtB4_5state3Cpu14check_overflow  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.308 s  _RNvXs0_NtCsjG2Vj6iG9HZ_10esp_periph4gpioNtB5_4GpioNtNtB7_6device6Device11irq_sources  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.282 s  _RNvXCshyqpGD0CtxZ_13esp32sim_wasmINtNtCs8n3wqGlZdA3_7esp_soc7machine7MachineNtNtCs8QzSBGVv86B_7esp32s33soc2S3ENtB2_10MachineApi9run_sliceB2_  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.241 s  _RNvNtCs8n3wqGlZdA3_7esp_soc3web11json_escape  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.152 s  _RNvMs0_NtCs8n3wqGlZdA3_7esp_soc7machineINtB5_7MachineNtNtCs8QzSBGVv86B_7esp32s33soc2S3E16after_round_restCshyqpGD0CtxZ_13esp32sim_wasm  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.151 s  _RNvMs0_NtCs8QzSBGVv86B_7esp32s33busNtB5_6SocBus11flush_ticks  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.141 s  _RNvXs_NtCs8QzSBGVv86B_7esp32s33busNtB4_6SocBusNtNtCsfEsNy1O7Gf9_8emu_core3bus3Bus6read32  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.116 s  _RNvMsl_NtCs8QzSBGVv86B_7esp32s36periphNtB5_11Peripherals4tick  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.090 s  _RNvMNtCsbqoFkXOIZKP_10xtensa_lx74execNtNtB4_5state3Cpu16check_interrupts  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.068 s  _RNvXs_NtCs8QzSBGVv86B_7esp32s33busNtB4_6SocBusNtNtCsfEsNy1O7Gf9_8emu_core3bus3Bus7write32  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.067 s  _RNvMsl_NtCs8QzSBGVv86B_7esp32s36periphNtB5_11Peripherals13source_status  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.064 s  loop  http://127.0.0.1:8795/web/wasm/worker.js
+   0.055 s  Module  
+   0.055 s  _RNvNtNtCsbqoFkXOIZKP_10xtensa_lx73jit6native5ready  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.043 s  _RNvMNtCsjG2Vj6iG9HZ_10esp_periph3rmtNtB2_3Rmt4tick  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.043 s  _RNvMsl_NtCs8QzSBGVv86B_7esp32s36periphNtB5_11Peripherals18cycles_until_timer  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.043 s  _RNvXs2_NtNtCskGMzdWn1DGZ_4core3str5lossyNtB5_10Utf8ChunksNtNtNtNtB9_4iter6traits8iterator8Iterator4next  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.038 s  _RNvNtCsbqoFkXOIZKP_10xtensa_lx76decode6decode  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.036 s  _RNvMs0_NtCs8n3wqGlZdA3_7esp_soc7machineINtB5_7MachineNtNtCs8QzSBGVv86B_7esp32s33soc2S3E11after_roundCshyqpGD0CtxZ_13esp32sim_wasm  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.029 s  _RNvXs2_NtCsjG2Vj6iG9HZ_10esp_periph4gdmaNtB5_4GdmaNtNtB7_6device6Device11irq_sources  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.025 s  _RNvMNtCs8QzSBGVv86B_7esp32s33busNtB2_6SocBus17complete_spi2_dma  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.024 s  _RNvXNtCsbqoFkXOIZKP_10xtensa_lx74coreNtNtB4_5state3CpuNtNtCsfEsNy1O7Gf9_8emu_core4core4Core14advance_cycles  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.022 s  _RNvXs0_NtCsjG2Vj6iG9HZ_10esp_periph4timgNtB5_10TimerGroupNtNtB7_6device6Device4tick  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.021 s  _RNvXse_NtCs8QzSBGVv86B_7esp32s35boardNtB5_19WaveshareAmoled18V2NtNtCs8n3wqGlZdA3_7esp_soc5board10BoardModel10advance_to  wasm://wasm/esp32sim_wasm.wasm-01ced48e
+   0.020 s  xtensa_40001c38  wasm://wasm/37f4dfa6
+   0.020 s  _RNvXs_NtCsjG2Vj6iG9HZ_10esp_periph8systimerNtB4_8SystimerNtNtB6_6device6Device4tick  wasm://wasm/esp32sim_wasm.wasm-01ced48e

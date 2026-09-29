@@ -1,0 +1,7 @@
+5067 actual-WASM differential cases passed: tools/wasm-jit-test.sh
+WASM firmware smoke manifests passed: hello c3-hello c6-hello c6-energy-scan panel
+WASM jit-tests Clippy passed with -D warnings.
+Retained-module reuse, changed instruction identity, boundary-length identity, age eviction and retention count cap checked.
+All 16 register-window bases, three colliding frames, four operand-window ranges, PS modes, budgets and entry positions compared with the interpreter.
+JIT and interpreter battery USB consoles are byte-identical to each other and the previous JIT run.
+Native execution backend unchanged by this optimization.

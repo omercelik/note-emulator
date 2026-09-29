@@ -1,0 +1,139 @@
+use crate::device::{Device, WriteEffect};
+use crate::regram::RegRam;
+use emu_core::ClockDomain;
+
+// ------------------------------------------------------------------ RMT (TX channels 0-3) — enough for WS2812 via the legacy driver
+pub const RMT_MEM_WORDS: usize = 48;
+#[derive(serde::Serialize, serde::Deserialize, Clone, Default)]
+pub struct RmtTxCh {
+    pub conf0: u32, pub tx_lim: u32, pub carrier: u32,
+    pub running: bool, pub rd: usize, pub since_thr: u32, pub wr: usize,
+    pub mem_empty: bool,
+    /// An end marker has been decoded; any preceding pulse must finish first.
+    end_pending: bool,
+    loop_count: u32,
+    pub acc_cycles: i64,
+    pub bits: Vec<bool>,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Rmt {
+    pub ch: [RmtTxCh; 4],
+    #[serde(with = "emu_core::snap::arr")]
+    pub mem: [u32; RMT_MEM_WORDS * 8],
+    pub int_raw: u32, pub int_ena: u32, pub sys_conf: u32,
+    ram: RegRam,
+    /// completed transmissions: (channel, bits)
+    pub done: Vec<(usize, Vec<bool>)>,
+    pub tx_count: u64,
+    cpu_per_apb: i64,
+}
+impl Rmt {
+    pub fn new(cpu_hz: u64) -> Self { Rmt { cpu_per_apb: (cpu_hz / crate::APB_HZ) as i64, ch: Default::default(), mem: [0; RMT_MEM_WORDS * 8], int_raw: 0, int_ena: 0, sys_conf: 0, ram: RegRam::new(), done: Vec::new(), tx_count: 0 } }
+    pub fn irq(&self) -> bool { self.int_raw & self.int_ena != 0 }
+    pub fn read(&self, off: u32) -> u32 {
+        match off {
+            0x20..=0x2c => { let c = &self.ch[((off - 0x20) / 4) as usize]; c.conf0 & !(1 << 0) & !(1 << 1) & !(1 << 2) & !(1 << 23) & !(1 << 24) }
+            0x50..=0x5c => { let n = ((off - 0x50) / 4) as usize; let c = &self.ch[n]; ((c.wr as u32 + (n as u32) * 48) << 11) | ((c.mem_empty as u32) << 25) | if c.running { 2 << 22 } else { 0 } }
+            0x70 => self.int_raw, 0x74 => self.int_raw & self.int_ena, 0x78 => self.int_ena,
+            0x80..=0x8c => self.ch[((off - 0x80) / 4) as usize].carrier,
+            0xa0..=0xac => self.ch[((off - 0xa0) / 4) as usize].tx_lim,
+            0xc0 => self.sys_conf, 0xcc => 0x2101271,
+            0x800..=0xbfc => self.mem[((off - 0x800) / 4) as usize],
+            _ => self.ram.read(off),
+        }
+    }
+    pub fn write(&mut self, off: u32, v: u32) {
+        match off {
+            0x0..=0xc => { let n = ((off) / 4) as usize; let c = &mut self.ch[n]; if c.wr < RMT_MEM_WORDS { self.mem[n * RMT_MEM_WORDS + c.wr] = v; c.wr += 1; } }
+            0x20..=0x2c => {
+                let n = ((off - 0x20) / 4) as usize;
+                let c = &mut self.ch[n];
+                c.conf0 = v;
+                if v & (1 << 2) != 0 { c.wr = 0; }                          // APB_MEM_RST
+                if v & (1 << 1) != 0 { c.rd = 0; c.mem_empty = false; c.end_pending = false; }      // MEM_RD_RST
+                if v & (1 << 0) != 0 { c.running = true; c.rd = 0; c.mem_empty = false; c.end_pending = false; c.since_thr = 0; c.acc_cycles = 0; c.bits.clear(); c.loop_count = 0; }   // TX_START
+                if v & (1 << 7) != 0 { c.running = false; }                 // TX_STOP
+            }
+            0x78 => self.int_ena = v, 0x7c => self.int_raw &= !v,
+            0x80..=0x8c => self.ch[((off - 0x80) / 4) as usize].carrier = v,
+            0xa0..=0xac => { let c = &mut self.ch[((off - 0xa0) / 4) as usize]; c.tx_lim = v & !(1 << 20); if v & (1 << 20) != 0 { c.loop_count = 0; } },
+            0xc0 => self.sys_conf = v,
+            0x800..=0xbfc => self.mem[((off - 0x800) / 4) as usize] = v,
+            _ => self.ram.write(off, v),
+        }
+    }
+    /// Advance transmitters by CPU cycles; symbols are consumed at their programmed duration.
+    pub fn tick(&mut self, cycles: u64) {
+        for n in 0..4 {
+            let c = &mut self.ch[n];
+            if !c.running { continue; }
+            c.acc_cycles += cycles as i64;
+            let div = ((c.conf0 >> 8) & 0xff).max(1) as i64;
+            let cycles_per_tick = self.cpu_per_apb * div;   // RMT clock = APB 80 MHz / div
+            let mem_words = (((c.conf0 >> 16) & 0xf).max(1) as usize) * RMT_MEM_WORDS;
+            let base = n * RMT_MEM_WORDS;
+            let mut guard = 0;
+            while (c.acc_cycles > 0 || (c.acc_cycles == 0 && c.end_pending)) && guard < 4096 {
+                guard += 1;
+                if c.end_pending {
+                    c.end_pending = false;
+                    if c.conf0 & (1 << 3) != 0 {
+                        let progressed = c.rd != 0;
+                        // Continuous output is not a completed WS2812 frame. Retain only
+                        // the current lap, so a buzzer cannot accumulate host memory.
+                        c.bits.clear();
+                        c.rd = 0;
+                        if c.tx_lim & (1 << 19) != 0 {
+                            c.loop_count += 1;
+                            if c.loop_count >= ((c.tx_lim >> 9) & 0x3ff).max(1) {
+                                self.int_raw |= 1 << (12 + n); // TX_LOOP
+                                c.loop_count = 0;
+                                if c.tx_lim & (1 << 21) != 0 { c.running = false; break; }
+                            }
+                        }
+                        if !progressed { c.acc_cycles = 0; break; }
+                        continue;
+                    }
+                    c.running = false;
+                    self.int_raw |= 1 << n;
+                    self.tx_count += 1;
+                    self.done.push((n, std::mem::take(&mut c.bits)));
+                    break;
+                }
+                // No-wrap exhaustion is an empty-memory error, not an end marker
+                // (S3 TRM 37.4). Invalid block allocations must not index host RAM.
+                let repeats = c.conf0 & ((1 << 3) | (1 << 4)) != 0; // continuous or wrap TX
+                if mem_words > self.mem.len() - base || (c.rd >= mem_words && !repeats) {
+                    c.running = false;
+                    c.mem_empty = true;
+                    self.int_raw |= 1 << (4 + n);
+                    break;
+                }
+                if c.rd != 0 && c.rd.is_multiple_of(mem_words) && c.conf0 & (1 << 3) != 0 { c.bits.clear(); }
+                let sym = self.mem[base + (c.rd % mem_words)];
+                let (d0, l0, d1, l1) = ((sym & 0x7fff) as i64, sym & 0x8000 != 0, ((sym >> 16) & 0x7fff) as i64, sym & 0x8000_0000 != 0);
+                if d0 == 0 { // end marker
+                    c.end_pending = true;
+                    continue;
+                }
+                // decode WS2812 bit: compare high vs low durations
+                let high = if l0 { d0 } else { 0 } + if l1 { d1 } else { 0 };
+                let low = if !l0 { d0 } else { 0 } + if !l1 { d1 } else { 0 };
+                c.bits.push(high > low);
+                c.acc_cycles -= (d0 + d1) * cycles_per_tick;
+                c.rd += 1;
+                c.since_thr += 1;
+                if c.tx_lim & 0x1ff != 0 && c.since_thr >= c.tx_lim & 0x1ff { c.since_thr = 0; self.int_raw |= 1 << (8 + n); }   // TX_THR_EVENT
+                c.end_pending = d1 == 0;
+            }
+        }
+    }
+}
+
+impl Device for Rmt {
+    fn read(&mut self, off: u32) -> u32 { Rmt::read(self, off) }
+    fn write(&mut self, off: u32, v: u32) -> WriteEffect { Rmt::write(self, off, v); WriteEffect::NONE }
+    fn irq_sources(&self) -> u64 { self.irq() as u64 }
+    fn clock(&self) -> Option<ClockDomain> { Some(ClockDomain::Cpu) }
+    fn tick(&mut self, cycles: u64) { Rmt::tick(self, cycles) }
+}

@@ -1,0 +1,22 @@
+{
+  "perCoreLoopHeads": 195,
+  "retainedBackedges": 238236441,
+  "scope": "Diagnostic feature only. Retained backedges exclude the final backedge when a call returns to the scheduler. Timing excluded from production comparisons.",
+  "sourceCommit": "f94607aaebed5ad4dd5d1dad885885b946abb785",
+  "wasmSha256": "0a01a474ef31ce40abb35b8d4054daf00cbf6e09feeee7fce93fdfa527d28272",
+  "feature": "jit-profile",
+  "leadingLoops": [
+    {
+      "core": 0,
+      "pc": "403833b0",
+      "calls": 4614914,
+      "retainedBackedges": 48400782
+    },
+    {
+      "core": 0,
+      "pc": "40383349",
+      "calls": 3232188,
+      "retainedBackedges": 48134257
+    }
+  ]
+}

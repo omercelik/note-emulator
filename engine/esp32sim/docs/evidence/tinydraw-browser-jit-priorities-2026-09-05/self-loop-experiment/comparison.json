@@ -1,0 +1,46 @@
+{
+  "off-1": {
+    "seconds": 120.56862000000105,
+    "consoleSHA256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+    "passed": true,
+    "instructions": 9820325756,
+    "chainedBackedges": 0
+  },
+  "on-1": {
+    "seconds": 126.46938500000164,
+    "consoleSHA256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+    "passed": true,
+    "instructions": 9820325756,
+    "chainedBackedges": 4008375
+  },
+  "on-2": {
+    "seconds": 126.15725,
+    "consoleSHA256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+    "passed": true,
+    "instructions": 9820325756,
+    "chainedBackedges": 4008375
+  },
+  "off-2": {
+    "seconds": 124.7485,
+    "consoleSHA256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+    "passed": true,
+    "instructions": 9820325756,
+    "chainedBackedges": 0
+  },
+  "off-3": {
+    "seconds": 126.90612999999895,
+    "consoleSHA256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+    "passed": true,
+    "instructions": 9820325756,
+    "chainedBackedges": 0
+  },
+  "on-3": {
+    "seconds": 127.59503500000015,
+    "consoleSHA256": "2496efdf2a12f86ea13f1b29de0991de5c71a2955f58c8ff4add72434221209f",
+    "passed": true,
+    "instructions": 9820325756,
+    "chainedBackedges": 4008375
+  },
+  "offMedian": 124.7485,
+  "onMedian": 126.46938500000164
+}

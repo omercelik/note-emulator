@@ -1,0 +1,8 @@
+{
+  "wasm": "web/wasm/esp32sim.wasm",
+  "rom": "/path/to/esp32s3_rev0_rom.elf",
+  "bootloader": "target/tinydraw-battery-2026-09-04/firmware/bootloader/bootloader.bin",
+  "ptable": "target/tinydraw-battery-2026-09-04/firmware/partition_table/partition-table.bin",
+  "app": "target/tinydraw-battery-2026-09-04/firmware/tinydraw_esp32.bin",
+  "elf": "target/tinydraw-battery-2026-09-04/firmware/tinydraw_esp32.elf"
+}

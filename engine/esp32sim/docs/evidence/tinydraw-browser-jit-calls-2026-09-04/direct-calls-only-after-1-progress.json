@@ -1,0 +1,17 @@
+{
+  "type": "progress",
+  "guestSeconds": 47.50084986666667,
+  "wallSeconds": 134.96033999999986,
+  "frames": 101,
+  "jit": {
+    "compiled": 10596,
+    "failed": 0,
+    "released": 6978,
+    "compileMs": 988.1800001002848,
+    "bytes": 94724522,
+    "liveBytes": 31046706,
+    "peakBytes": 35593571,
+    "peakModules": 4337
+  },
+  "tail": " total_us=17025 max_slice_us=221 checksum=29cfe926dcc05ca5 failures=0 exact=1 pass=1\r\nTINYDRAW_GATE1_SETTLE_LONG zoom=100 policy=full_bbox tiles=9 slices=1221 total_us=74061 max_slice_us=133 checksum=04c9ef7a849a0616 failures=0 exact=1 pass=1\r\nTINYDRAW_GATE1_SETTLE_LONG zoom=100 policy=narrowed tiles=9 slices=388 total_us=27322 max_slice_us=301 checksum=04c9ef7a849a0616 failures=0 exact=1 pass=1\r\n"
+}

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "claim": {
+    "tier": "exact",
+    "readCycles": {
+      "fast": 9,
+      "apb": 15,
+      "nrx": 18
+    },
+    "composition": "whole-instruction cost; do not add instruction issue cycles",
+    "scope": "only the listed register addresses"
+  },
+  "configuration": {
+    "chip": "ESP32-S3 QFN56",
+    "revision": "v0.2",
+    "espIdf": "v6.1",
+    "compiler": "xtensa-esp-elf 15.2.0",
+    "cpuHz": 240000000,
+    "flashMode": "QIO",
+    "flashHz": 80000000,
+    "psramMode": "octal DTR",
+    "psramHz": 80000000,
+    "instructionCacheLineBytes": 32,
+    "dataCacheLineBytes": 64
+  },
+  "sources": {
+    "summarySha256": "67d213b0f823452582115e74d18f48f0e4142bfa8851f181388fac83c9245dd6",
+    "imageElfSha256": "90bee849abeca5449fa8e330497717cf9a01562a106eee0e72b604abf55a50b5",
+    "bootCaptureSha256": [
+      "f87b50a3e48816f6b57e5f63a3fc1ece816e78e9d68a5060c49f07ed1f953358",
+      "8357aee24199d9b8a464238294744b52c013e2fbe215f935d701b13735f63e13"
+    ],
+    "samplesPerCellPerBoot": 100,
+    "boots": 2
+  },
+  "addresses": {
+    "fast": ["0x600c0060", "0x600c1014", "0x600c4004", "0x600ce05c"],
+    "apb": [
+      "0x6000001c", "0x60002018", "0x60003018", "0x600040b0", "0x600050f0",
+      "0x600090b4", "0x6000e044", "0x60013050", "0x6001f070", "0x60020070",
+      "0x60023044", "0x60024014", "0x60026014", "0x60038008", "0x6003b018",
+      "0x6003f0a8", "0x60040000"
+    ],
+    "nrx": ["0x6001ccd4"]
+  },
+  "refused": {
+    "distribution": ["0x6000703c", "0x60008038"],
+    "unmeasured": "all other MMIO addresses"
+  }
+}

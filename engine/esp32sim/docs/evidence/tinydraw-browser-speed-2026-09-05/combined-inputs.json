@@ -1,0 +1,36 @@
+{
+  "sourceCommit": "8df2f0ad35bdee878c7a3f24e25e66436911a79b",
+  "validatedRuntimeCommit": "951102f8",
+  "runtimeIdenticalAfterHarnessRebase": true,
+  "assets": {
+    "wasm": {
+      "path": "/Users/alice/src/a/esp32sim/target/browser-speed-2026-09-05/combined.wasm",
+      "sha256": "36be0b28582c9b55bc5f64d8378fd9e52f59a4940bf32f3d834e440efa93c639"
+    },
+    "rom": {
+      "path": "/Users/alice/.espressif/tools/esp-rom-elfs/20241011/esp32s3_rev0_rom.elf",
+      "sha256": "c0ce0f338d1de1bdc6efbef1591779a2a42c1ab7d759d3c6ae8ae63a7dd34cfd"
+    },
+    "bootloader": {
+      "path": "/Users/alice/src/a/esp32sim/target/tinydraw-battery-2026-09-04/firmware/bootloader/bootloader.bin",
+      "sha256": "5f5111980c1c8aeae76e08706eee6df49424bac759e703c78662946de4a12288"
+    },
+    "ptable": {
+      "path": "/Users/alice/src/a/esp32sim/target/tinydraw-battery-2026-09-04/firmware/partition_table/partition-table.bin",
+      "sha256": "f53268312c8caffe6c7f4e6c66d4092aeca3435c142db3116466f84a6a608d2d"
+    },
+    "app": {
+      "path": "/Users/alice/src/a/esp32sim/target/tinydraw-battery-2026-09-04/firmware/tinydraw_esp32.bin",
+      "sha256": "f4702138f5f4012938274a96aa18e9d1ffbb35f4d3139bc87a4e03038ac904c1"
+    },
+    "elf": {
+      "path": "/Users/alice/src/a/esp32sim/target/tinydraw-battery-2026-09-04/firmware/tinydraw_esp32.elf",
+      "sha256": "d8e9be336ff6b12cd84580c69fc182ccfee8da7a3cc3813571ba6c25013a850e"
+    }
+  },
+  "javascript": {
+    "web/wasm/worker.js": "d4889ae0f0695616da4ee7a30991a0fb300498433ba1c85ed6529016a015a2a3",
+    "web/wasm/pacing.mjs": "be891e5cd99e47791f4fdafb9d1cabb0f42ed09b8f1758d890884f41dc83d6cf",
+    "web/wasm/jit.mjs": "a759ae4a3d1ca6ddd91259ede39e34ebda45ff7ccb9c4ceeff0d1423f44ac294"
+  }
+}

@@ -1,0 +1,74 @@
+CPU samples in named generated blocks, including descendants (not dispatch):
+4.898 s tinydraw::vector_v2::apply_masked_operation_chord_rows(tinydraw::vector_v2::MaskedOperationChordRowsRequest const&)
+2.382 s tinydraw::esp32::Co5300PanelTransport::Impl::stream_rect(int, int, int, int, unsigned short const*, int, int, tinydraw::esp32::PanelStagePatch)
+1.495 s tinydraw::vector_v2::raster_internal::mask_unset_window(std::span<unsigned char const, 4294967295u>, unsigned int, unsigned int)
+0.892 s PNGFindFilter(unsigned char*, unsigned char*, int, int)
+0.802 s tinydraw::vector_v2::prepare_operation_chord_batch(std::span<tinydraw::vector_v2::CompactOperationSample const, 4294967295u>, unsigned int, tinydraw::vector_v2::ZoomLevel, tinydraw::vector_v2::PixelRect, std::span<std::byte, 4294967295u>, tinydraw::vector_v2::OperationChordBatch&)
+0.755 s tinydraw::esp32::gate_harness::run_native_kernel_gate()
+0.712 s tinydraw::vector_v2::raster_internal::paint_masked_exact_span(int, int, unsigned int, unsigned short, tinydraw::vector_v2::RasterSurface const&, std::span<unsigned char, 4294967295u>)
+0.613 s memmove
+0.570 s s_i2c_start_end_command
+0.566 s tinydraw_tile_uniform_color_pie
+0.508 s vTaskSwitchContext
+0.491 s s_i2c_transaction_start
+0.479 s tinydraw::vector_v2::apply_operation_chord_slice(tinydraw::vector_v2::OperationChordSliceRequest const&)
+0.465 s tinydraw::vector_v2::raster_internal::first_non_full_mask_byte(unsigned char const*, unsigned char const*)
+0.408 s xPortEnterCriticalTimeout
+0.396 s _i2c_hal_set_bus_timing
+0.384 s tinydraw_copy_pixel_rows_pie
+0.358 s systimer_hal_get_counter_value
+0.341 s tinydraw::vector_v2::raster_internal::paint_masked_const_row(tinydraw::vector_v2::raster_internal::Segment const&, tinydraw::vector_v2::raster_internal::RowSeed const&, tinydraw::vector_v2::PixelRect, tinydraw::vector_v2::raster_internal::MaskedRowTarget const&)
+0.321 s _ZN8tinydraw9vector_v212_GLOBAL__N_1L19blend_cached_spriteERKNS0_14MinimapSurfaceENS0_10ChromeRectESt4spanIKtLj4294967295EE$isra$0
+
+Sampled guest instructions: 2400170; interpreted: 923249
+Top interpreted missing-opcode sets; percentages are guest frequency, NOT CPU time:
+   62333  2.60% Muluh
+   58747  2.45% AddS,Bt,ConstS,FloatS,MaddS,MovS,MovtS,MulS,OleS,OltS,SubS
+   57578  2.40% Entry
+   55856  2.33% (supported/cold/single)
+   47980  2.00% Entry,Sll,Srl
+   47962  2.00% AddS,ConstS,FloatS,Lsi,MaddS,MovS,MovtS,MulS,OltS,SubS,Wfr
+   37005  1.54% Pie
+   35832  1.49% Rsr
+   29330  1.22% AddexpS,AddexpmS,ConstS,Div0S,DivnS,Entry,MaddnS,MkdadjS,MovS,NegS,Nexp01S,Rfr,Wfr
+   29121  1.21% AddS,Bf,ConstS,FloatS,MaddS,MovS,MovtS,MulS,OleS,OltS,SubS
+   26938  1.12% AddS,Lsi,MovS,MsubS,MulS,SubS,TruncS,Wfr
+   25673  1.07% Loop
+   22166  0.92% AddS,Bf,FloatS,Lsi,MaddS,MovS,MovtS,MsubS,MulS,OleS,OltS,SubS
+   19543  0.81% AddS,Entry,FloatS,Lsi,MovfS,OltS,SubS,TruncS
+   18537  0.77% Sll
+   15351  0.64% FloatS,Movf,Movt,OltS,TruncS
+   12872  0.54% Abs
+   12714  0.53% FloatS,Movf,Movt,OltS
+   12334  0.51% Entry,Wfr
+   11835  0.49% RetwN
+   11603  0.48% Bf,MaddS,MovS,MulS,OltS,Ssi,SubS,Wfr
+   10970  0.46% Bt,MaddS,MulS,OleS,SubS
+   10926  0.46% AddS,Entry,Lsi,MaddS,MulS,SubS,Wfr
+    9989  0.42% AddS,Entry,FloatS,Rfr,Ssi,Wfr
+    9912  0.41% Bf,Lsi,MovS,MsubS,MulS,OltS,Ssi,SubS,Wfr
+
+Top interpreted guest functions:
+   64272  2.68% tinydraw::vector_v2::raster_internal::conservative_row_span(tinydraw::vector_v2::raster_internal::RowSeed const&, tinydraw::vector_v2::PixelRect, float)
+   59871  2.49% tinydraw::vector_v2::raster_internal::first_covered_at_or_after(tinydraw::vector_v2::raster_internal::Segment const&, int, int, float)
+   57327  2.39% tinydraw::esp32::gate_harness::run_native_kernel_gate()
+   48851  2.04% tinydraw::vector_v2::raster_internal::paint_masked_tapered_row(tinydraw::vector_v2::raster_internal::Segment const&, int, tinydraw::vector_v2::raster_internal::ScanSpan, unsigned short, tinydraw::vector_v2::RasterSurface const&, std::span<unsigned char, 4294967295u>)
+   45811  1.91% tinydraw::vector_v2::raster_internal::mask_unset_window(std::span<unsigned char const, 4294967295u>, unsigned int, unsigned int)
+   42097  1.75% tinydraw::vector_v2::raster_internal::last_covered_at_or_before(tinydraw::vector_v2::raster_internal::Segment const&, int, int, float)
+   36196  1.51% tinydraw_tile_uniform_color_pie
+   32508  1.35% tinydraw::vector_v2::SettledRenderCursor::raster_chord_row(int, int)
+   32257  1.34% tinydraw::vector_v2::raster_internal::segment_bounds(tinydraw::vector_v2::raster_internal::Segment const&, tinydraw::vector_v2::PixelRect)
+   31857  1.33% tinydraw::vector_v2::raster_internal::make_curved_unit(tinydraw::vector_v2::raster_internal::Sample const&, tinydraw::vector_v2::raster_internal::Sample const&, tinydraw::vector_v2::raster_internal::Sample const&, bool, tinydraw::vector_v2::raster_internal::CurveUnit&)
+   29331  1.22% __divsf3
+   22079  0.92% tinydraw::vector_v2::raster_internal::find_first_covered(tinydraw::vector_v2::raster_internal::PixelCoverageRow const&, tinydraw::vector_v2::PixelRect, tinydraw::vector_v2::raster_internal::ScanSpan)
+   19713  0.82% tinydraw::vector_v2::raster_internal::conservative_tapered_row_span(tinydraw::vector_v2::raster_internal::TaperedSpanTable const&, tinydraw::vector_v2::PixelRect, float)
+   18735  0.78% tinydraw::vector_v2::apply_masked_operation_chord_rows(tinydraw::vector_v2::MaskedOperationChordRowsRequest const&)
+   17327  0.72% xPortEnterCriticalTimeout
+   17292  0.72% tinydraw::vector_v2::(anonymous namespace)::ChordBatchBuilder::append(tinydraw::vector_v2::raster_internal::Segment const&)
+   16228  0.68% memmove
+   14718  0.61% PNGFindFilter(unsigned char*, unsigned char*, int, int)
+   14580  0.61% tinydraw::vector_v2::raster_internal::paint_masked_exact_span(int, int, unsigned int, unsigned short, tinydraw::vector_v2::RasterSurface const&, std::span<unsigned char, 4294967295u>)
+   14316  0.60% tinydraw::vector_v2::raster_internal::find_last_covered(tinydraw::vector_v2::raster_internal::PixelCoverageRow const&, tinydraw::vector_v2::PixelRect, tinydraw::vector_v2::raster_internal::ScanSpan, int)
+Potential newly eligible with small integer ops: 107228 (4.47% of sampled instructions); no speedup prediction
+Potential newly eligible with Entry: 57578 (2.40% of sampled instructions); no speedup prediction
+Potential newly eligible with Entry + small integer ops: 214182 (8.92% of sampled instructions); no speedup prediction

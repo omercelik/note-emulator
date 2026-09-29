@@ -1,0 +1,12 @@
+{
+  "esp-soc/Cargo.toml": "f2e2d5e2396ca7c258e9d12f402227de5d8ce1f3395e3caee7a6bb986065b1b1",
+  "esp-soc/src/machine.rs": "967717955990a68a00f4a4e6dfa717350dbe56603425f216e4657864381c5652",
+  "esp32s3/src/board.rs": "a3c66efc3c96192bd257a3148838e8198544659b03c1aef8cf697dd64a455696",
+  "wasm/Cargo.toml": "2fe54cae8b7c3e99ddfd2585141f547c697aa29f1cf0d967264fa317a3c641c0",
+  "xtensa-lx7/Cargo.toml": "3da9de8277b3f6f96551875e998b75c0103ff87c79d4944664b44d202e032bc9",
+  "xtensa-lx7/src/block.rs": "aa25ebc5c46760f0ab8771627c5b9f3f77bf57b5f980588f05f2c39becb02f3b",
+  "xtensa-lx7/src/jit/wasm.rs": "d7e7d57ac446150c7f87b2bcbc9163596fa155a35669e11052ba6c3907e007c1",
+  "xtensa-lx7/src/jit/wasm_emit.rs": "1b686ab8a184741f189309895f7a639980aa51ef72ef792790be5f0c54a45161",
+  "xtensa-lx7/src/jit/wasm_tests.rs": "01d2e532788fbe6eb31a46154c1fb60fa3b6809db0329035ec9135c7db43aa13",
+  "tools/browser-benchmark/capture-battery.mjs": "d4e3fe9c64bb9bd3e299f110f7326fb3dd719814601aae748d9cbe70de1423d6"
+}

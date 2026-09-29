@@ -1,0 +1,24 @@
+Actual-WASM differential build:
+RUSTC="$(rustup which rustc)" DYLD_FALLBACK_LIBRARY_PATH="$(dirname "$(dirname "$(rustup which rustc)")")/lib" "$(rustup which cargo)" build --release --target wasm32-unknown-unknown -p esp32sim-wasm --features cpu-profile,jit-tests
+node tools/wasm-jit-test.mjs
+PASS: 32561 WASM differential cases (ALU, helper continuation, memory, faults, loops, windows, budget/resume, invalidation, timer, script stop, peer-state MMIO); 30261 compiled modules released
+
+WASM lint:
+TMPDIR="$PWD/target/test-tmp" RUSTC="$(rustup which rustc)" DYLD_FALLBACK_LIBRARY_PATH="$(dirname "$(dirname "$(rustup which rustc)")")/lib" "$(rustup which cargo)" clippy --release --target wasm32-unknown-unknown -p esp32sim-wasm --features cpu-profile,jit-profile,jit-tests -- -D warnings
+Passed.
+
+Matched baseline and candidate build (before/after the emitter change):
+RUSTC="$(rustup which rustc)" DYLD_FALLBACK_LIBRARY_PATH="$(dirname "$(dirname "$(rustup which rustc)")")/lib" "$(rustup which cargo)" build --release --target wasm32-unknown-unknown -p esp32sim-wasm
+No profiling features or post-build optimizer. Saved separately under target/browser-entry-shifts/.
+
+Six sequential headless battery captures: baseline/candidate/candidate/baseline/baseline/candidate.
+All 36 boolean gates passed each run, with identical USB console hashes and guest instruction counts.
+See comparison.json and the per-run result/event receipts.
+
+Headless production-worker drawing replay: 36 boot gates, 3 commits, 24/24 movement responses.
+Screenshot inspected for placement of all three new strokes. No final vector-authority assertion.
+
+node --check tools/browser-benchmark/capture-battery.mjs: passed.
+git diff --check: passed.
+git apply --reverse --check target/browser-entry-shifts/pre-existing.patch: passed (check only; no reversal performed).
+No native/workspace rerun: implementation changes are in the WASM-only emitter and WASM differential tests.

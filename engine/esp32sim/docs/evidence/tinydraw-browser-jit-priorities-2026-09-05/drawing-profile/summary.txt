@@ -1,0 +1,21 @@
+CPU samples in named generated blocks, including descendants (not dispatch):
+0.095 s vTaskSwitchContext
+0.089 s xPortEnterCriticalTimeout
+0.059 s s_i2c_transaction_start
+0.058 s s_i2c_start_end_command
+0.052 s xQueueGenericSend
+0.051 s vPortExitCritical
+0.050 s _i2c_hal_set_bus_timing
+0.044 s tinydraw::esp32::vector_v2_app_step(tinydraw::esp32::VectorV2AppSession&)
+0.039 s __call__xtos_set_intlevel
+0.039 s esp_task_wdt_reset
+0.037 s xQueueSemaphoreTake
+0.036 s xTaskIncrementTick
+0.034 s _frxt_int_exit
+0.030 s systimer_hal_get_counter_value
+0.026 s s_i2c_send_commands
+0.024 s esp_cpu_compare_and_set
+0.022 s xQueueReceive
+0.020 s s_i2c_write_command
+0.020 s s_i2c_read_command
+0.019 s i2c_master_transmit_receive

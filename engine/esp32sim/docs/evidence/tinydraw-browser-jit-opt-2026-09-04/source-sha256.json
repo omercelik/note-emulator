@@ -1,0 +1,21 @@
+{
+  ".github/workflows/ci.yml": "03f8fcf571a494a11f2318aab56c00049f4b36eec464b1cd00e33ea13844dca6",
+  "esp-soc/src/machine.rs": "d0aca718f7febc32c37752972057beced0978a8c48b9f6466f982812a5b85a89",
+  "tools/wasm-jit-test.mjs": "ba7b01b10c04f5d21a5240662edfc08d42b7d0110dfee7753ce285af964dea97",
+  "tools/wasm-jit-test.sh": "210bd13125bc4562eaecfd3dc5a2e621531b9eeaa8b99050394667e824234ecf",
+  "tools/wasm-test.mjs": "59ba689f191e3395aa93de9fdee194d3c50e6023f9442e934c5ccc04a4203408",
+  "wasm/Cargo.toml": "c4fe66c17698f47bfad47e5c5af252f67ef9d752485310efa7f53495a7a70540",
+  "wasm/build.rs": "b455d09530c16dce6dffd4976cc181ffaa3963dd71c92c89b64eaffe6869179b",
+  "wasm/src/jit_tests.rs": "81d5ec6d1ba2b216edc813d055e57456bed2d7dd2b57c1e77ee2577b8a09e0e6",
+  "wasm/src/lib.rs": "a5bdaf428a35cb1948779ba6c6ae68681d9f4cd60b8b07407d9ef10a0428b1d5",
+  "web/emu.js": "c871709b6646c01cd2fc5380dd24ef8ff5542c3ba7102f7c440547aacf049f7b",
+  "web/wasm/jit.mjs": "a759ae4a3d1ca6ddd91259ede39e34ebda45ff7ccb9c4ceeff0d1423f44ac294",
+  "web/wasm/worker.js": "835d6a94342bb7a23bb79fce096d7df65eda128fecefa1a35166a2e5785eeb52",
+  "xtensa-lx7/Cargo.toml": "8a518ef7750948960927d34a64d83a7dcddd66dc6147b86abea9c9a820db0b04",
+  "xtensa-lx7/src/block.rs": "09a9928adb636ad1fac96f7ccbd9e380e13c6fa68b48e1139d406cf9d1e8f4be",
+  "xtensa-lx7/src/core.rs": "e91626a70177035cccd62e2d40e9738302f6c2d975c22f26b119082a0a29d90c",
+  "xtensa-lx7/src/jit/mod.rs": "91ae32d2821de1eaf8a1dfd3694b8bf769ac01c3b2f674d12da9f2b3eae66fac",
+  "xtensa-lx7/src/jit/wasm.rs": "5ec6afc296ac485d96eb15b2966f831cdc625105a0006e160fdc25661f63c6ea",
+  "xtensa-lx7/src/jit/wasm_emit.rs": "2f9fcfd80be3c702ee000adfaf9a3ee595a9cf3f5f17b99a60d2a5b343a09c22",
+  "xtensa-lx7/src/jit/wasm_tests.rs": "e1616d38c6c2d5858da3ea676e465b11e3c7588b8ba5c87cab1427b9e5e68d1f"
+}

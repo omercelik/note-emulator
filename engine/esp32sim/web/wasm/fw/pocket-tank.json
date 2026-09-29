@@ -1,0 +1,12 @@
+{
+ "board": "waveshare-amoled18-v2",
+ "flash_mb": 16,
+ "psram_mb": 8,
+ "files": { "rom": "esp32s3_rev0_rom.elf", "bootloader": "public/pocket-tank-bootloader.bin", "ptable": "public/pocket-tank-ptable.bin", "app": "public/pocket-tank.bin" },
+ "flash_at": { "0x290000": "local/model_q4.bin" },
+ "expect": "tok/s",
+ "seconds": 30,
+ "display_rotate": 90,
+ "line_hint": "a director command, e.g. feed 6 or shadow (help lists them)",
+ "_note": "page demo and benchmark workload: mediacutlet/pocket-tank (MIT), bootloader, partition table and app committed under public/ (the installer's bytes, MIT, pocket-tank-LICENSE.txt), the model fetched by tools/fetch-pocket-tank.sh (and by the Pages workflow); see docs/speed-plan.md"
+}

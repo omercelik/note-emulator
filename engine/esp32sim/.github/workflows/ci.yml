@@ -1,0 +1,77 @@
+name: ci
+on:
+  push:
+    branches: ['**']
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Evidence privacy patterns
+        run: node tools/check-evidence-privacy.mjs
+      - name: Retained x5 receipt contracts
+        run: |
+          node --test docs/evidence/perf-x5-2026-09-22/verify-results.test.mjs
+          node docs/evidence/perf-x5-2026-09-22/verify-results.mjs
+          node --test docs/evidence/perf-x5-2026-09-22/m1-before-after/verify.test.mjs
+          node docs/evidence/perf-x5-2026-09-22/m1-before-after/verify.mjs
+          node --test docs/evidence/perf-x5-2026-09-22/historical-before-after/verify.test.mjs
+          node docs/evidence/perf-x5-2026-09-22/historical-before-after/verify.mjs
+      - name: Fetch the ESP32-S3, ESP32-C3 and ESP32-C6 mask ROM ELFs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          url=$(gh api repos/espressif/esp-rom-elfs/releases/latest --jq '.assets | map(select(.name | endswith(".tar.gz"))) | first | .browser_download_url')
+          test -n "$url" && test "$url" != null
+          curl -fsSL --retry 5 --retry-all-errors --retry-delay 5 "$url" -o rom.tar.gz
+          mkdir -p roms && tar -xzf rom.tar.gz -C roms --wildcards '*esp32s3_rev0_rom.elf' '*esp32c3_rev3_rom.elf' '*esp32c6_rev0_rom.elf'
+          find roms -mindepth 2 -name '*.elf' -exec mv {} roms/ \;
+          ls -la roms/*.elf
+      - name: Build
+        run: cargo build --release --workspace
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Clippy (WASM JIT and differential tests)
+        run: cargo clippy --release --target wasm32-unknown-unknown -p esp32sim-wasm --features jit-tests -- -D warnings
+      - name: Test (hermetic + golden outputs)
+        run: ESP32SIM_ROM_DIR=$PWD/roms cargo test --release --workspace -- --include-ignored --skip external_
+      - name: Virtual-quantum scheduler (native opt-in)
+        run: ESP32SIM_VQ_NATIVE=1 cargo test --release -p esp32s3 --test machine --test virtual_stops
+      - name: Build the wasm module
+        run: tools/wasm-build.sh
+      - name: Production WASM sections (no DWARF, profile names retained)
+        run: node tools/check-wasm-sections.mjs web/wasm/esp32sim.wasm
+      - name: Test the wasm module (the real build, under Node, through the page's manifests)
+        run: ESP32SIM_ROM_DIR=$PWD/roms node tools/wasm-test.mjs hello c3-hello c6-hello c6-energy-scan c6-contiki c6-contiki-net c6-rpl-net panel
+      - name: Timing configuration ABI (real wasm exports)
+        run: node wasm/tests/timing-api.mjs web/wasm/esp32sim.wasm
+      - name: Worker pacing, channel and experiment tests
+        run: |
+          node tools/worker-pacing-test.mjs
+          node tools/worker-channel-test.mjs
+          node --test tools/touch-input-test.mjs
+      - name: Browser benchmark verdict, configuration and receipt tests
+        run: |
+          node --test tools/wasm-build-policy.test.mjs
+          node --test tools/browser-benchmark/*.test.mjs
+          python3 -m unittest discover -s tools/browser-benchmark -p 'test_*.py'
+      - name: Differential tests for generated WASM blocks
+        run: tools/wasm-jit-test.sh
+      - name: Compile WASM profiling features with production flags
+        run: |
+          . ./tools/wasm-rustflags.sh
+          cargo build --release --target wasm32-unknown-unknown -p esp32sim-wasm --features jit-profile,cpu-profile
+  native-aarch64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Native AArch64 core and JIT memory tests
+        run: cargo test --release -p xtensa-lx7

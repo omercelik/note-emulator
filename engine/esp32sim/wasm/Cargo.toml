@@ -1,0 +1,26 @@
+[package]
+name = "esp32sim-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "esp32sim compiled to WebAssembly: the emulator in the page, driven by web/wasm/worker.js"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+esp32s3 = { path = "../esp32s3" }
+esp-soc = { path = "../esp-soc" }
+esp-periph = { path = "../esp-periph" }
+esp32c3 = { path = "../esp32c3" }
+esp32c6 = { path = "../esp32c6" }
+esp32sim-wasm-jit = { path = "../wasm-jit" }
+xtensa-lx7 = { path = "../xtensa-lx7" }
+
+[features]
+# The inline data-cache probe of the timing model; it is emitted only once the model is switched on.
+default = ["cache-inline"]
+jit-tests = ["xtensa-lx7/wasm-jit-tests"]
+jit-profile = ["xtensa-lx7/wasm-jit-profile"]
+cpu-profile = ["xtensa-lx7/wasm-cpu-profile", "esp-soc/wasm-cpu-profile"]
+cache-inline = ["xtensa-lx7/wasm-cache-inline", "esp32s3/cache-inline"]

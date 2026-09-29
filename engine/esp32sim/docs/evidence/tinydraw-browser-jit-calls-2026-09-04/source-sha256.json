@@ -1,0 +1,11 @@
+{
+  "xtensa-lx7/src/jit/wasm.rs": "9700738f82d5420026c8838ef49eb98f5c5eaca5d66fc18de660552db3f658b6",
+  "xtensa-lx7/src/jit/wasm_emit.rs": "740fd30ef73f9f90152a3d1c4344b39d54fa667ba275fb72c708585970577ad9",
+  "xtensa-lx7/src/jit/wasm_tests.rs": "acbdcaa4142b08df0298510cb84f921802edae318d7b6f8088e54b31a94b4958",
+  "xtensa-lx7/src/jit/wasm_profile.rs": "ecccc1fb343f52d06c35117dfb06b780d05b7408f1d0a979549e0a3037ffacb0",
+  "xtensa-lx7/src/block.rs": "888f3e8668c4ff67977163856b8ed8023c12c342e108dac3762a5b7ae55d45bb",
+  "xtensa-lx7/Cargo.toml": "22b1abb9fb4ac53f53bc65796e9b59d1c1411a7bce4702e5f8ed1650c4d8f078",
+  "wasm/Cargo.toml": "e05d43211b9d55cb3cd267294ed73f59bb402736edd9ba33a4eb48f394b1af68",
+  "wasm/src/lib.rs": "d2542a6cc7cbc8527fd23114908bc9197f220eb80096bf287d69da0991e6f98b",
+  "web/wasm/jit.mjs": "a759ae4a3d1ca6ddd91259ede39e34ebda45ff7ccb9c4ceeff0d1423f44ac294"
+}

@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = ["emu-core", "esp-periph", "esp-soc", "xtensa-lx7", "esp32s3", "cli", "wasm", "wasm-jit", "riscv-rv32", "esp32c3", "esp32c6"]
+
+[workspace.package]
+version = "0.2.0"
+edition = "2021"
+license = "MIT"
+
+[profile.release]
+opt-level = 3
+debug = 1
+lto = "fat"
+codegen-units = 1

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "status": "measured",
+  "measuredAtUtc": "2026-09-04T18:10:51Z",
+  "implementationHead": "0af02e81d57373a56f6a34ebcc88c23142b3dd05",
+  "sources": {
+    "harness": {
+      "path": "wasm-jit/examples/sram_kernel_speed.rs",
+      "sha256": "599e52f0895b5adc1aa76c76c1ab5bca0cf79019950cdd8b747e9c52c44e8583"
+    },
+    "kernel": {
+      "path": "esp32s3/tests/fixtures/tinydraw-sram-kernel.bin",
+      "sha256": "d21db307c7be78ffa0bb82a3e1446219bc0eac22cd557fc633e28fd16cadaa8e"
+    }
+  },
+  "environment": {
+    "hostChip": "Apple M1 Pro",
+    "hostArchitecture": "aarch64",
+    "macOS": "27.0",
+    "node": "v24.16.0",
+    "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)"
+  },
+  "command": "TMPDIR=$PWD/target/test-tmp cargo run --release -p esp32sim-wasm-jit --example sram_kernel_speed",
+  "workload": {
+    "guestInstructionsPerRun": 7,
+    "receiptCyclesPerRun": 7,
+    "moduleBytes": 5737,
+    "warmupRuns": 100000,
+    "sampleRuns": 1000000,
+    "samples": 5
+  },
+  "elapsedNanoseconds": [19220791, 19735042, 18376125, 18242000, 18100042],
+  "rankedMips": [
+    354.6990171087551,
+    364.1889660004107,
+    380.92905876510963,
+    383.7298541826554,
+    386.73943408529107
+  ],
+  "medianMips": 380.929059,
+  "scope": "Compiler microbenchmark for the seven-instruction receipt-priced SRAM kernel with one JavaScript-to-WebAssembly call per run; excludes browser-emulator dispatch and shared-time scheduling."
+}

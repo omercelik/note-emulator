@@ -1,0 +1,1063 @@
+//! ESP32-S3 memory map: internal SRAM (512 KiB, IRAM/DRAM aliases), mask ROM, RTC
+//! memories, external flash + PSRAM through the 512-entry cache MMU, peripherals.
+use crate::periph::{Peripherals, PERIPH_BASE, PERIPH_END};
+use crate::board::Board;
+mod dma;
+pub use dma::{DmaDescriptorFault, DmaDescriptorWord};
+use dma::Spi2DmaCompletion;
+#[cfg(test)]
+use dma::SPI2_DMA_DESCRIPTOR_STEP_BUDGET;
+use xtensa_lx7::bus::{Bus, Fault};
+
+pub const SRAM_SIZE: usize = 512 * 1024;
+pub const IRAM_LOW: u32 = 0x4037_0000;
+pub const IRAM_HIGH: u32 = 0x403E_0000;
+pub const DRAM_LOW: u32 = 0x3FC8_8000;
+pub const DRAM_HIGH: u32 = 0x3FD0_0000;
+pub const IROM_MASK_LOW: u32 = 0x4000_0000;
+pub const IROM_MASK_HIGH: u32 = 0x4006_0000;
+pub const DROM_MASK_LOW: u32 = 0x3FF0_0000;
+pub const DROM_MASK_HIGH: u32 = 0x3FF2_0000;
+pub const RTC_FAST_LOW: u32 = 0x600F_E000;
+pub const RTC_FAST_HIGH: u32 = 0x6010_0000;
+pub const RTC_SLOW_LOW: u32 = 0x5000_0000;
+pub const RTC_SLOW_HIGH: u32 = 0x5000_2000;
+pub const DBUS_LOW: u32 = 0x3C00_0000;
+pub const DBUS_HIGH: u32 = 0x3E00_0000;
+pub const IBUS_LOW: u32 = 0x4200_0000;
+pub const IBUS_HIGH: u32 = 0x4400_0000;
+/// GPIO matrix output signal of RMT TX channel 0 (soc/gpio_sig_map.h); channel n is this + n.
+pub const RMT_SIG_OUT0: u32 = 81;
+pub const MMU_TABLE: u32 = 0x600C_5000;
+pub const MMU_ENTRIES: usize = 512;
+pub const MMU_INVALID: u32 = 1 << 14;
+pub const MMU_SPIRAM: u32 = 1 << 15;
+pub const PAGE: u32 = 0x1_0000;
+const _: () = {
+    // EX173: a generated access derives its alignment from `addr - entry.lo`, so every mapping
+    // this bus can build must start at least 16-byte aligned (the widest access is a PIE vector).
+    assert!(PAGE.is_multiple_of(16) && DRAM_LOW.is_multiple_of(16) && IRAM_LOW.is_multiple_of(16) && IROM_MASK_LOW.is_multiple_of(16));
+    assert!(DROM_MASK_LOW.is_multiple_of(16) && RTC_FAST_LOW.is_multiple_of(16) && RTC_SLOW_LOW.is_multiple_of(16));
+    assert!(DBUS_LOW.is_multiple_of(16) && IBUS_LOW.is_multiple_of(16));
+};
+
+pub struct SocBus {
+    pub sram: Vec<u8>,
+    pub irom: Vec<u8>,
+    pub drom: Vec<u8>,
+    pub rtc_fast: Vec<u8>,
+    pub rtc_slow: Vec<u8>,
+    pub flash: Vec<u8>,
+    pub psram: Vec<u8>,
+    pub mmu: [u32; MMU_ENTRIES],
+    pub periph: Peripherals,
+    pub board: Board,
+    pub cycles: u64,
+    pub last_fault: Option<(u32, bool)>,
+    pub spi2_dma_fault: Option<DmaDescriptorFault>,
+    pub spi3_dma_fault: Option<DmaDescriptorFault>,
+    /// Experimental register-derived SPI2 wire timing; disabled for baseline runs.
+    pub spi2_timing: bool,
+    spi2_scheduled: Option<(u64, Spi2DmaCompletion)>,
+    /// set by any peripheral write: interrupt lines must be re-evaluated before the next instruction
+    pub irq_dirty: bool,
+    /// GPIO edges for observers, while one wants them: (cycle, pin, level)
+    pub gpio_events: Option<Vec<(u64, u8, bool)>>,
+    pub debug: esp_soc::DebugFlags,
+    /// Software TLB: the last resolved mapping per 64 KiB page, so loads, stores and fetches skip
+    /// the address-range walk and the flash MMU. Cleared whenever the MMU changes.
+    tlb: Vec<TlbEntry>,
+    /// One version counter per `VPAGE`-byte page of every buffer, bumped by each write there. The
+    /// decode and block caches store the versions they were built under, so a stale decode can
+    /// never run. 256 bytes rather than 4 KiB because IRAM and DRAM are one SRAM: on the S3 the
+    /// app's `.dram0.data` begins in the same 4 KiB as the end of IRAM text, and every global
+    /// write was invalidating `_xt_context_save`.
+    page_ver: Vec<u32>,
+    /// first `page_ver` index of each buffer, by `SRC_*`
+    ver_base: [u32; 7],
+    /// shell-s2: moves with every change to a version `stable_pages` covers (flash pages). Starts at a
+    /// per-bus base `BUS_EPOCHS` hands out, so equal epochs also mean the same bus (review B1).
+    flash_epoch: u64,
+    /// EX110: one flag per 64 KiB block of the `page_ver` index space (256 pages, the span of one
+    /// TLB entry): some decode cache, block or region has recorded the version of a page in it, or
+    /// of a page next to it. Never cleared while the buffers stand. `TlbEntry.code` copies it, so a
+    /// write through a mapping whose whole block is unwatched can skip the version bump entirely.
+    code_blk: Vec<u8>,
+    /// Device time is advanced lazily: cycles accumulate here and the devices see them in one
+    /// batch when a timer is due, a peripheral register is accessed, or the active-device
+    /// backstop expires. Quiet devices allow a longer backstop.
+    tick_pending: u32, tick_budget: u32,
+    /// EX133 virtual quanta: stop in front of device-register accesses / one was just refused.
+    pub(crate) defer_mmio: bool, pub(crate) mmio_deferred: bool, pub vq_violations: u64,
+    approximate_cache: Option<crate::approximate_cache::CacheTiming>,
+    approximate_cache_pending: u32,
+    approximate_cache_fast_internal: bool,
+    approximate_cache_inline: bool,
+    approximate_cache_yield_miss: bool,
+    cache_resource: CacheResource,
+    pub(crate) fetch_cache: xtensa_lx7::state::SharedFetchCache,
+}
+
+/// One shared external resource, occupied only by priced fills/writebacks.
+/// Requests within a compiled batch are serialized at its supplied start time.
+#[derive(Default, serde::Serialize, serde::Deserialize)]
+struct CacheResource {
+    enabled: bool,
+    busy_until: u64,
+    cursor: u64,
+    core: usize,
+    fill_cycles: u32,
+    fill_service_cycles: u32,
+    flash_timing: Option<(u32, u32)>, // demand readiness and shared-bus occupancy
+    writeback_cycles: u32,
+    wait_cycles: [u64; 2],
+}
+
+/// Preserve the original cadence whenever an active device lacks a deadline.
+const MAX_TICK_DEFER: u32 = 256;
+/// EX134: only quiet devices may use this longer backstop. The default stays below
+/// one USB SOF period (60000 cycles); overrides are for explicit experiments.
+const QUIET_TICK_DEFER: u32 = match option_env!("ESP32SIM_DEFER_BUILD") {
+    Some(s) => { let b = s.as_bytes(); let (mut i, mut v) = (0, 0u32); while i < b.len() { v = v * 10 + (b[i] - b'0') as u32; i += 1; } v }
+    None => 32768,
+};
+
+/// Buffer identifiers for resolved addresses.
+pub const SRC_SRAM: u8 = 0; pub const SRC_IROM: u8 = 1; pub const SRC_FLASH: u8 = 2; pub const SRC_PSRAM: u8 = 3;
+pub const SRC_DROM: u8 = 4; pub const SRC_RTC_FAST: u8 = 5; pub const SRC_RTC_SLOW: u8 = 6;
+const TLB_SIZE: usize = xtensa_lx7::bus::TLB_ENTRIES;
+/// Granularity of the write-version counters. Must exceed the longest block (`block::MAX_LEN` × 3 bytes).
+const VPAGE_SHIFT: usize = xtensa_lx7::bus::VPAGE_SHIFT as usize;
+const VPAGE_MASK: usize = (1 << VPAGE_SHIFT) - 1;
+use xtensa_lx7::bus::{FastMem, TlbEntry};
+#[inline(always)]
+fn tlb_idx(addr: u32) -> usize { xtensa_lx7::bus::tlb_index(addr) }
+/// Review B1: the next bus's `flash_epoch` base. A CPU whose caches outlive one bus must not match
+/// another bus's epoch; 2^32 flash-version changes per bus before bases could meet.
+static BUS_EPOCHS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+
+impl SocBus {
+    pub(crate) fn cancel_spi2_timing(&mut self) { self.spi2_scheduled = None; }
+
+    pub fn new(flash_size: usize, psram_size: usize, mac: [u8; 6]) -> Self { Self::with_sizes(flash_size, psram_size, mac) }
+    pub fn with_sizes(flash_size: usize, psram_size: usize, mac: [u8; 6]) -> Self {
+        let bus_uninit = SocBus {
+            sram: vec![0; SRAM_SIZE], irom: vec![0; (IROM_MASK_HIGH - IROM_MASK_LOW) as usize], drom: vec![0; (DROM_MASK_HIGH - DROM_MASK_LOW) as usize],
+            rtc_fast: vec![0; 8192], rtc_slow: vec![0; 8192], flash: vec![0xff; flash_size], psram: vec![0; psram_size],
+            mmu: [MMU_INVALID; MMU_ENTRIES], periph: Peripherals::new(mac), board: Box::new(crate::board::Atech14::new()), cycles: 0, last_fault: None, spi2_dma_fault: None, spi3_dma_fault: None, irq_dirty: false, gpio_events: None, debug: Default::default(),
+            spi2_timing: false, spi2_scheduled: None,
+            tlb: vec![TlbEntry::EMPTY; TLB_SIZE], page_ver: Vec::new(), ver_base: [0; 7], flash_epoch: BUS_EPOCHS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) << 32, code_blk: Vec::new(), tick_pending: 0, tick_budget: 0, defer_mmio: false, mmio_deferred: false, vq_violations: 0,
+            approximate_cache: None, approximate_cache_pending: 0, approximate_cache_fast_internal: false, approximate_cache_inline: false,
+            approximate_cache_yield_miss: false,
+            cache_resource: CacheResource::default(),
+            fetch_cache: xtensa_lx7::state::SharedFetchCache::default(),
+        };
+        let mut b = bus_uninit;
+        b.rebuild_page_table();
+        b
+    }
+
+    /// Rough helper-path experiment. Disables direct memory access so reads and
+    /// writes visit cache state. Enable before execution. No instruction costs.
+    pub fn enable_approximate_cache(&mut self, config: crate::approximate_cache::CacheConfig) {
+        self.cache_resource.fill_cycles = config.fill_cycles;
+        self.cache_resource.fill_service_cycles = config.fill_cycles;
+        self.cache_resource.flash_timing = None;
+        self.cache_resource.writeback_cycles = config.writeback_cycles;
+        self.approximate_cache = Some(crate::approximate_cache::CacheTiming::new(config));
+        self.approximate_cache_pending = 0;
+        self.approximate_cache_inline = false;
+        self.approximate_cache_fast_internal = false;
+        self.invalidate_tlb();
+    }
+
+    /// Chip reset drops shared cache contents and timing debt, not experiment settings.
+    /// Reset in place so an inline cache view retains its backing allocation.
+    pub(crate) fn reset_approximate_cache(&mut self) {
+        if let Some(cache) = &mut self.approximate_cache { cache.reset(); }
+        self.approximate_cache_pending = 0;
+        self.cache_resource.busy_until = self.cycles;
+        self.cache_resource.cursor = self.cycles;
+        self.cache_resource.core = 0;
+        self.cache_resource.wait_cycles = [0; 2];
+    }
+
+    pub fn approximate_cache_stats(&self) -> Option<crate::approximate_cache::CacheAccess> {
+        self.approximate_cache.as_ref().map(|cache| cache.stats())
+    }
+    /// Keep internal SRAM on the generated direct path while external data uses priced helpers.
+    pub fn set_approximate_cache_fast_internal(&mut self, enabled: bool) {
+        self.approximate_cache_fast_internal = enabled;
+        self.invalidate_tlb();
+    }
+    /// Reuse the existing compiled helper exit to schedule the first cache miss promptly.
+    pub fn set_approximate_cache_yield_miss(&mut self, enabled: bool) {
+        self.approximate_cache_yield_miss = enabled;
+    }
+
+    pub fn set_approximate_cache_inline(&mut self) -> bool {
+        if !cfg!(all(target_arch = "wasm32", feature = "cache-inline")) { return false; }
+        if self.approximate_cache.as_mut().and_then(|c| c.inline_view()).is_none() { return false; }
+        self.approximate_cache_inline = true;
+        self.approximate_cache_fast_internal = true;
+        self.invalidate_tlb();
+        true
+    }
+
+    pub fn take_approximate_cache_penalty(&mut self) -> u32 {
+        std::mem::take(&mut self.approximate_cache_pending)
+    }
+
+    /// Enable before execution, together with the earliest-ready compiled scheduler.
+    pub fn set_approximate_cache_contention(&mut self, enabled: bool) {
+        self.cache_resource.enabled = enabled;
+        self.cache_resource.busy_until = self.cycles;
+        self.cache_resource.cursor = self.cycles;
+        self.cache_resource.wait_cycles = [0; 2];
+    }
+    pub fn approximate_cache_wait_cycles(&self) -> [u64; 2] { self.cache_resource.wait_cycles }
+    /// Hypothesis: requested data can be ready before the external line burst finishes.
+    /// CPU readiness remains CacheConfig.fill_cycles; default service equals readiness.
+    pub fn set_approximate_cache_fill_service(&mut self, cycles: u32) -> bool {
+        if cycles < self.cache_resource.fill_cycles { return false; }
+        self.cache_resource.fill_service_cycles = cycles;
+        true
+    }
+
+    /// Optional flash-only timing experiment. Configure the common cache first;
+    /// absent this override, flash and PSRAM retain the common readiness/service.
+    pub fn set_approximate_flash_timing(&mut self, ready: u32, service: u32) -> bool {
+        if self.approximate_cache.is_none() || service < ready { return false; }
+        self.cache_resource.flash_timing = Some((ready, service));
+        true
+    }
+
+    #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
+    #[cfg_attr(target_arch = "wasm32", inline)]
+    fn price_cached_data(&mut self, entry: TlbEntry, address: u32, width: u32, write: bool) {
+        if !matches!(entry.src as u8, SRC_FLASH | SRC_PSRAM) { return; }
+        if let Some(cache) = &mut self.approximate_cache {
+            // Physical offset plus resource distinguishes flash from PSRAM and
+            // recognizes virtual aliases. Both cores share this bus/cache.
+            let key = (entry.src << 28) | (entry.off + address - entry.lo);
+            let resource = &mut self.cache_resource;
+            let common = (resource.fill_cycles, resource.fill_service_cycles);
+            let (ready, service) = if entry.src as u8 == SRC_FLASH {
+                resource.flash_timing.unwrap_or(common)
+            } else { common };
+            let result = cache.access_with_fill_cycles(key, width, write, ready);
+            if resource.enabled {
+                let mut wait = 0u64;
+                // Dirty victims finish before refill. Writes do not have an early-ready split.
+                for _ in 0..result.dirty_writebacks {
+                    wait = wait.saturating_add(resource.reserve(resource.writeback_cycles, resource.writeback_cycles));
+                }
+                for _ in 0..result.line_fills {
+                    wait = wait.saturating_add(resource.reserve(ready, service));
+                }
+                resource.wait_cycles[resource.core] = resource.wait_cycles[resource.core].saturating_add(wait);
+                // Requested-data readiness is already included in extra_cycles below.
+                self.approximate_cache_pending = self.approximate_cache_pending
+                    .saturating_add(wait.min(u32::MAX as u64) as u32);
+            }
+            self.approximate_cache_pending = self.approximate_cache_pending
+                .saturating_add(result.extra_cycles.min(u32::MAX as u64) as u32);
+        }
+    }
+
+    /// Attach fresh peripheral-side devices and restore the levels driven by the persistent board.
+    pub fn attach_board_devices(&mut self) {
+        for (bus, address, device) in self.board.i2c_devices() {
+            self.periph.i2c[bus as usize].attach(address, device);
+        }
+        for (pin, level) in self.board.input_levels() {
+            let old_input = self.periph.gpio.input;
+            self.periph.gpio.set_input(pin, level);
+            self.irq_dirty |= old_input != self.periph.gpio.input;
+        }
+        // Restored input edges and the board's own deadline can activate device work.
+        self.refresh_tick_budget();
+    }
+
+    /// Time until deferred device work must run. The bounded fallback covers devices without
+    /// an explicit timer deadline.
+    pub fn next_deadline(&self) -> u64 { self.tick_budget.saturating_sub(self.tick_pending).max(1) as u64 }
+
+    /// Size the per-page version table to the buffers. Call after replacing `flash` or `psram`.
+    pub fn rebuild_page_table(&mut self) {
+        let sizes = [self.sram.len(), self.irom.len(), self.flash.len(), self.psram.len(), self.drom.len(), self.rtc_fast.len(), self.rtc_slow.len()];
+        let mut base = 0u32;
+        for (i, n) in sizes.iter().enumerate() { self.ver_base[i] = base; base += ((n + VPAGE_MASK) >> VPAGE_SHIFT) as u32; }
+        self.page_ver = vec![0; base as usize + 1];
+        // Small buffers can share a version block; marking it conservatively watches both.
+        // An entry covers at most 64 KiB, hence at most two blocks. Keep marks across a resize: forgetting one could let a write to watched code skip its version bump.
+        self.code_blk.resize((self.page_ver.len() >> 8) + 2, 0);
+        self.invalidate_tlb();
+    }
+
+    /// EX110: is any page of the 64 KiB block holding version page `p` watched by decoded code?
+    /// Unknown indices answer yes, so a mapping outside the table never skips bookkeeping.
+    #[inline(always)]
+    fn blk_watched(&self, p: u32) -> bool { self.code_blk.get((p >> 8) as usize).copied().unwrap_or(1) != 0 }
+
+    /// Forget every cached mapping. Anything that re-points the flash MMU must call this.
+    /// A remap changes which bytes a cache-window pc refers to without any write happening, so
+    /// the flash and PSRAM page versions are bumped too: that is what invalidates decoded
+    /// instructions and blocks that were built through the old mapping. Shared fetch tags
+    /// are virtual, so remapping also makes the shared instruction cache cold.
+    pub fn invalidate_tlb(&mut self) {
+        self.fetch_cache.reset();
+        for e in self.tlb.iter_mut() { *e = TlbEntry::EMPTY; }
+        let (a, b) = (self.ver_base[SRC_FLASH as usize] as usize, self.ver_base[SRC_DROM as usize] as usize);
+        for v in &mut self.page_ver[a..b] { *v = v.wrapping_add(1); }          // flash then psram
+        self.flash_epoch += 1;
+    }
+
+    /// shell-s2: versions `first..=last` changed; move the epoch if `stable_pages` covers one.
+    #[inline(always)]
+    pub(crate) fn touched(&mut self, first: usize, last: usize) {
+        let (lo, hi, _) = Bus::stable_pages(self);
+        if first < hi as usize && last >= lo as usize { self.flash_epoch += 1; }
+    }
+
+    #[inline(always)]
+    fn buf(&self, src: u8) -> &Vec<u8> {
+        match src { SRC_SRAM => &self.sram, SRC_IROM => &self.irom, SRC_FLASH => &self.flash, SRC_PSRAM => &self.psram,
+                    SRC_DROM => &self.drom, SRC_RTC_FAST => &self.rtc_fast, _ => &self.rtc_slow }
+    }
+    #[inline(always)]
+    fn buf_mut(&mut self, src: u8) -> &mut Vec<u8> {
+        match src { SRC_SRAM => &mut self.sram, SRC_IROM => &mut self.irom, SRC_FLASH => &mut self.flash, SRC_PSRAM => &mut self.psram,
+                    SRC_DROM => &mut self.drom, SRC_RTC_FAST => &mut self.rtc_fast, _ => &mut self.rtc_slow }
+    }
+
+    /// The mapping covering `addr`, from the TLB or by walking the address map.
+    #[inline(always)]
+    fn lookup(&mut self, addr: u32) -> Option<TlbEntry> {
+        let e = self.tlb[tlb_idx(addr)];
+        if addr >= e.lo && addr < e.hi { Some(e) } else { self.tlb_fill(addr) }
+    }
+
+    /// Walk the address map for the 64 KiB page holding `addr` and remember it.
+    fn tlb_fill(&mut self, addr: u32) -> Option<TlbEntry> {
+        let page = addr & !0xffff;
+        let region = |lo: u32, hi: u32, src: u8, w: bool| -> TlbEntry {
+            let lo_ = page.max(lo); let hi_ = (page + 0x10000).min(hi);
+            TlbEntry { lo: lo_, hi: hi_, base: std::ptr::null_mut(), off: lo_ - lo, vbase: 0, src: src as u32, writable: w as u16, code: 1, #[cfg(target_arch = "wasm32")] span: 0 }
+        };
+        let mut e = match addr {
+            DRAM_LOW..=0x3FCF_FFFF => { let mut e = region(DRAM_LOW, 0x3FD0_0000, SRC_SRAM, true); e.off += 0x8000; e }
+            IRAM_LOW..=0x403D_FFFF => region(IRAM_LOW, 0x403E_0000, SRC_SRAM, true),
+            IROM_MASK_LOW..=0x4005_FFFF => region(IROM_MASK_LOW, 0x4006_0000, SRC_IROM, false),
+            DROM_MASK_LOW..=0x3FF1_FFFF => region(DROM_MASK_LOW, 0x3FF2_0000, SRC_DROM, false),
+            RTC_FAST_LOW..=0x600F_FFFF => region(RTC_FAST_LOW, 0x6010_0000, SRC_RTC_FAST, true),
+            RTC_SLOW_LOW..=0x5000_1FFF => region(RTC_SLOW_LOW, 0x5000_2000, SRC_RTC_SLOW, true),
+            DBUS_LOW..=0x3DFF_FFFF | IBUS_LOW..=0x43FF_FFFF => {
+                let linear = addr & 0x1FF_FFFF;
+                let entry = self.mmu[(linear >> 16) as usize];
+                if entry & MMU_INVALID != 0 { return None; }
+                let off = (entry & 0x3fff) as usize * PAGE as usize;
+                let (src, w) = if entry & MMU_SPIRAM != 0 { (SRC_PSRAM, true) } else { (SRC_FLASH, false) };
+                if off + PAGE as usize > self.buf(src).len() { return None; }
+                TlbEntry { lo: page, hi: page + 0x10000, base: std::ptr::null_mut(), off: off as u32, vbase: 0, src: src as u32, writable: w as u16, code: 1, #[cfg(target_arch = "wasm32")] span: 0 }
+            }
+            _ => return None,
+        };
+        e.vbase = self.ver_base[e.src as usize] + (e.off as usize >> VPAGE_SHIFT) as u32;
+        // EX110: an entry spans at most 64 KiB, so its pages lie in at most two blocks.
+        e.code = (self.blk_watched(e.vbase) || self.blk_watched(e.vbase + ((e.hi - e.lo - 1) >> VPAGE_SHIFT))) as u16;
+        let off = e.off as usize;
+        e.base = self.buf_mut(e.src as u8).as_mut_ptr().wrapping_add(off);
+        // EX173: generated probes test `addr - lo` against this span, and derive an access's
+        // alignment from the same difference, so every mapping starts 16-byte aligned.
+        debug_assert_eq!(e.lo % 16, 0);
+        let e = e.with_span();
+        // Do not publish external mappings to generated loads/stores while pricing cache accesses.
+        // Returning the mapping still lets the slow accessor perform this one access.
+        if !(self.approximate_cache.is_some() && self.approximate_cache_fast_internal && !self.approximate_cache_inline
+            && matches!(e.src as u8, SRC_FLASH | SRC_PSRAM)) {
+            self.tlb[tlb_idx(addr)] = e;
+        }
+        Some(e)
+    }
+
+    /// Record that `len` bytes at `off` of the page group starting at `vbase` changed. An
+    /// instruction can begin up to two bytes before a page boundary, so the previous page is
+    /// bumped too when the write touches the first bytes of one. EX110: guest stores call this
+    /// only through a mapping with `code != 0`; every other caller bumps unconditionally.
+    #[inline(always)]
+    fn bump(&mut self, vbase: u32, off: usize, len: usize) {
+        let p = vbase as usize + (off >> VPAGE_SHIFT);
+        self.page_ver[p] = self.page_ver[p].wrapping_add(1);
+        let last = vbase as usize + ((off + len - 1) >> VPAGE_SHIFT);
+        if last != p { self.page_ver[last] = self.page_ver[last].wrapping_add(1); }
+        if off & VPAGE_MASK < emu_core::bus::PREV_PAGE_BYTES as usize && p > 0 { self.page_ver[p - 1] = self.page_ver[p - 1].wrapping_add(1); }
+        self.touched(p.saturating_sub(1), last);
+    }
+
+    /// EX110: watch page `vidx` from now on. A code page also marks its neighbors' blocks,
+    /// because `bump` moves the page before a write in the first three bytes of a page and the
+    /// page after a write that spans one: if the written page's own block is unwatched, then no
+    /// consumer depends on any of the three, and the whole bump can go. Published entries are
+    /// dropped so that generated code reloads the new flag; no byte changed, so no version moves.
+    fn watch_code_page(&mut self, vidx: u32) {
+        let mut changed = false;
+        for p in [vidx.saturating_sub(1), vidx, vidx.saturating_add(1)] {
+            if let Some(f) = self.code_blk.get_mut((p >> 8) as usize) { if *f == 0 { *f = 1; changed = true; } }
+        }
+        if changed { for e in self.tlb.iter_mut() { *e = TlbEntry::EMPTY; } }
+    }
+
+    /// A supply loss: SRAM, RTC fast/slow memory and PSRAM lose their contents (modelled as
+    /// zero); flash and eFuse keep theirs. Decode and block caches see the change. Pair with
+    /// `reboot` and a POWERON reset cause for a cold power-on. (NOTE fork, PATCHES.md #13.)
+    pub fn clear_volatile_memory(&mut self) {
+        for src in [SRC_SRAM, SRC_RTC_FAST, SRC_RTC_SLOW, SRC_PSRAM] {
+            let len = self.buf(src).len();
+            self.buf_mut(src).fill(0);
+            self.note_written(src, 0, len);
+        }
+    }
+
+    /// Record a write done behind the bus's back (image loaders, the SPI flash controller).
+    pub fn note_written(&mut self, src: u8, off: usize, len: usize) {
+        if len == 0 { return; }
+        let vbase = self.ver_base[src as usize];
+        let (first, last) = (off >> VPAGE_SHIFT, (off + len - 1) >> VPAGE_SHIFT);
+        for p in first..=last { let i = vbase as usize + p; if i < self.page_ver.len() { self.page_ver[i] = self.page_ver[i].wrapping_add(1); } }
+        if off & VPAGE_MASK < emu_core::bus::PREV_PAGE_BYTES as usize && first > 0 { let i = vbase as usize + first - 1; self.page_ver[i] = self.page_ver[i].wrapping_add(1); }
+        self.touched((vbase as usize + first).saturating_sub(1), vbase as usize + last);
+    }
+
+    #[inline]
+    fn is_periph(addr: u32) -> bool { (PERIPH_BASE..PERIPH_END).contains(&addr) }
+
+    fn periph_read(&mut self, addr: u32) -> u32 {
+        if (MMU_TABLE..MMU_TABLE + (MMU_ENTRIES as u32) * 4).contains(&addr) {
+            return self.mmu[((addr - MMU_TABLE) >> 2) as usize];
+        }
+        self.vq_backstop(addr);
+        self.flush_ticks();                                         // registers must show exact time
+        self.periph.read32(addr)
+    }
+    /// EX133: every device-register access must have been deferred out of a multi-quantum run.
+    /// One that was not (a PIE or MAC16 word access; nothing real does this) saw early time.
+    #[inline]
+    fn vq_backstop(&mut self, addr: u32) {
+        if self.defer_mmio { assert!(option_env!("ESP32SIM_VQ_STRICT").is_none(), "EX133: undeferred device access at {addr:#x}"); self.vq_violations += 1; if self.vq_violations == 1 { eprintln!("[emu] EX133: undeferred device access at {addr:#x}, pc {:#x}", self.periph.misc.cur_pc); } }
+    }
+    fn periph_write(&mut self, addr: u32, v: u32) {
+        self.vq_backstop(addr);
+        self.periph_write_inner(addr, v);
+        self.refresh_tick_budget();   // the write may have armed something
+    }
+    fn periph_write_inner(&mut self, addr: u32, v: u32) {
+        if (MMU_TABLE..MMU_TABLE + (MMU_ENTRIES as u32) * 4).contains(&addr) {
+            let i = ((addr - MMU_TABLE) >> 2) as usize;
+            if self.mmu[i] != v & 0xffff { self.mmu[i] = v & 0xffff; self.invalidate_tlb(); }
+            return;
+        }
+        self.flush_ticks();
+        let a = addr & !3;
+        // mmio-s1: SPI2/SPI3 and GDMA writes reach only those devices' sources (and RAM, the board),
+        // so they re-derive interrupt lines only when one of those sources moved.
+        let spi = matches!(a >> 12, 0x60024 | 0x60025 | 0x6003f);
+        let sources = |p: &Peripherals| (p.spi2.irq(), p.spi3.irq(), esp_periph::Device::irq_sources(&p.gdma));
+        let before = if spi { sources(&self.periph) } else { (false, false, 0) };
+        if a == PERIPH_BASE + 0x24_000 && v & (1 << 24) != 0 {
+            self.spi2_dma_fault = None;
+            self.spi2_scheduled = None;
+        }
+        if a == PERIPH_BASE + 0x25_000 && v & (1 << 24) != 0 {
+            self.spi3_dma_fault = None;
+        }
+        // GDMA block: OUT_RST (0x60) or an OUT_LINK START/RESTART (0x80) on the
+        // scheduled SPI2 source channel discards the transaction: the payload was
+        // snapshotted for a chain that no longer exists, so hardware-model semantics
+        // are abort without TRANS_DONE. OUT_LINK STOP only stops later fetches and
+        // plain W1C interrupt clears or configuration writes never cancel.
+        if let Some((_, completion)) = &self.spi2_scheduled {
+            if a >= PERIPH_BASE + 0x3f_000 && a < PERIPH_BASE + 0x3f_000 + crate::periph::GDMA_CH_STRIDE * crate::periph::GDMA_CHANNELS as u32 {
+                let offset = a & 0xfff;
+                let (channel, register) = ((offset / crate::periph::GDMA_CH_STRIDE) as usize, offset % crate::periph::GDMA_CH_STRIDE);
+                if channel == completion.channel
+                    && ((register == 0x60 && v & 1 != 0) || (register == 0x80 && v & ((1 << 21) | (1 << 22)) != 0))
+                {
+                    if self.periph.spi2.log { eprintln!("[spi2] DMA source reset/rebound: aborting scheduled transfer"); }
+                    self.spi2_scheduled = None;
+                    self.periph.spi2.fail_dma_tx();
+                }
+            }
+        }
+        let old_gpio_out = self.periph.gpio.out;
+        self.periph.write32(a, v);
+        self.service_gpspi();
+        // GPIO output writes usually only drive the board, but an enabled level
+        // interrupt also observes output levels. Inspect only changed output pins.
+        if spi {
+            self.irq_dirty |= before != sources(&self.periph);
+        } else if !(0x6000_4004..=0x6000_4018).contains(&a) {
+            self.irq_dirty = true;
+        } else {
+            let mut changed = (old_gpio_out ^ self.periph.gpio.out) & self.periph.gpio.enable & ((1u64 << 49) - 1);
+            while changed != 0 {
+                let pin = changed.trailing_zeros() as usize;
+                changed &= changed - 1;
+                let config = self.periph.gpio.pin[pin];
+                if config & (1 << 13) != 0 && matches!((config >> 7) & 7, 4 | 5) {
+                    self.irq_dirty = true;
+                    break;
+                }
+            }
+        }
+        if let Some(req) = self.periph.rtc.sar.as_mut().and_then(|s| s.take_request()) {
+            let mv = self.board.adc_millivolts(req.unit, req.channel).unwrap_or(0);
+            let digi = self.periph.efuse.adc_cal_digi(req.unit, req.atten);
+            self.periph.rtc.complete_sar(req.unit, esp_periph::sar_adc::raw_for_millivolts_calibrated(mv, req.unit, req.atten, digi));
+        }
+        if self.periph.spi_exec {
+            self.periph.spi_exec = false;
+            self.periph.spi1.execute(&mut self.flash, &mut self.psram);
+            for (m, off, len) in std::mem::take(&mut self.periph.spi1.dirty) { self.note_written(match m { crate::periph::DirtyMem::Flash => SRC_FLASH, crate::periph::DirtyMem::Psram => SRC_PSRAM }, off, len); }
+        }
+    }
+
+    /// WiFi MAC transmit: fetch the queued frames from their DMA descriptors and complete them.
+    fn wifi_tx_step(&mut self) {
+        let pending = std::mem::take(&mut self.periph.wifi.tx_pending);
+        for (slot, desc) in pending {
+            let dw0 = self.read32_unpriced(desc).unwrap_or(0); let pkt = self.read32_unpriced(desc + 4).unwrap_or(0);
+            let len = ((dw0 >> 12) & 0xfff) as usize;
+            let mut frame = Vec::with_capacity(len);
+            for i in 0..len { frame.push(self.read8_unpriced(pkt + i as u32).unwrap_or(0)); }
+            if self.periph.wifi.log || self.debug.has("wifi-frames") { eprintln!("[wifi] TX slot {} desc {:#010x} pkt {:#010x} {}", slot, desc, pkt, crate::wifi::describe(&frame)); }
+            self.periph.wifi.tx_done(slot);
+            self.irq_dirty = true;
+            let now_us = self.cycles / (crate::periph::CPU_HZ / 1_000_000);
+            if let Some(ap) = &mut self.periph.wifi.ap {
+                if let Some(data) = ap.on_station_tx(&frame, now_us) {
+                    if let Some(eth) = crate::wifi::data_to_eth(&data) { self.periph.wifi.eth_tx.push(eth); }
+                }
+            }
+            // Guest SoftAP traffic belongs to the emulated station, not the 10.0.2.0 NAT.
+            let eth = if let Some(peer) = &mut self.periph.wifi.peer {
+                peer.observe(&frame, now_us);
+                peer.take_eth()
+            } else { Vec::new() };
+            self.periph.wifi.peer_eth.extend(eth);
+        }
+    }
+
+    /// Earliest management frame, else the earliest beacon. Equal keys keep the AP frame.
+    fn next_air_frame(ap: &mut Vec<crate::wifi::AirFrame>, peer: &mut Vec<crate::wifi::AirFrame>) -> Option<Vec<u8>> {
+        let rank = |a: &crate::wifi::AirFrame| (crate::wifi::is_beacon(&a.frame), a.at_us);
+        let best = |q: &[crate::wifi::AirFrame]| q.iter().enumerate().min_by_key(|(_, a)| rank(a)).map(|(i, _)| i);
+        match (best(ap), best(peer)) {
+            (None, None) => None,
+            (Some(i), None) => Some(ap.remove(i).frame),
+            (None, Some(i)) => Some(peer.remove(i).frame),
+            (Some(i), Some(j)) if rank(&peer[j]) < rank(&ap[i]) => Some(peer.remove(j).frame),
+            (Some(i), Some(_)) => Some(ap.remove(i).frame),
+        }
+    }
+
+    /// ARP and browser TCP for a guest SoftAP. Quiet until [`crate::softap::SoftApRelay`] is installed.
+    fn softap_relay_step(&mut self) {
+        let queued = self.periph.wifi.peer_eth.len();
+        if self.periph.wifi.relay.is_none() {
+            if queued > 64 { self.periph.wifi.peer_eth.drain(..queued - 64); }
+            return;
+        }
+        let now_us = self.cycles / (crate::periph::CPU_HZ / 1_000_000);
+        let lease = self.periph.wifi.peer.as_ref().and_then(|peer| {
+            peer.ip.map(|ip| (ip, peer.bssid, peer.server_ip))
+        });
+        let incoming = std::mem::take(&mut self.periph.wifi.peer_eth);
+        let due = now_us.wrapping_sub(self.periph.wifi.net_polled_us) >= 500 || !incoming.is_empty();
+        let Some(relay) = &mut self.periph.wifi.relay else { return };
+        if let Some((ip, bssid, server)) = lease {
+            relay.set_lease(ip, bssid, server);
+        }
+        let mut back = Vec::new();
+        for eth in incoming { back.extend(relay.handle(&eth, now_us)); }
+        if due { back.extend(relay.poll(now_us)); }
+        self.periph.wifi.peer_tx.extend(back);
+    }
+
+    /// The virtual air: beacons/responses from the AP and frames from the network backend land in the RX ring.
+    fn wifi_air_step(&mut self) {
+        let now_us = self.cycles / (crate::periph::CPU_HZ / 1_000_000);
+        // The blob's RX path only *indicates* a frame up the 802.11 stack while the descriptor ring is
+        // shallow; with several filled descriptors pending it switches to batch block-recycle and drops
+        // them. So hold off until the previously delivered descriptor has been recycled by software
+        // (has_data cleared) — that is what a real radio sees at low traffic — and never deliver two
+        // frames closer than a frame's airtime.
+        if now_us.wrapping_sub(self.periph.wifi.last_rx_us) < 400 { return; }
+        // ... but if software stops recycling altogether, don't stall the air forever: after 50 ms
+        // the frame is dropped, exactly as a real ring would overflow.
+        let busy = { let d = self.periph.wifi.last_rx_desc; d != 0 && self.read32_unpriced(d).unwrap_or(0) & (1 << 30) != 0 };
+        if busy && now_us.wrapping_sub(self.periph.wifi.last_rx_us) < 50_000 { return; }
+        let mut ap_due = { let ap = self.periph.wifi.ap.as_mut().unwrap(); ap.step(now_us) };
+        let eth_in = std::mem::take(&mut self.periph.wifi.eth_rx);
+        for e in eth_in { if let Some(f) = self.periph.wifi.ap.as_mut().unwrap().data_from_ds(&e) { ap_due.push(crate::wifi::AirFrame { at_us: now_us, frame: f }); } }
+        let inject = if self.periph.wifi.peer.is_some() { std::mem::take(&mut self.periph.wifi.peer_tx) } else { Vec::new() };
+        let mut peer_due = Vec::new();
+        if let Some(peer) = &mut self.periph.wifi.peer {
+            for eth in &inject { peer.inject_eth(eth, now_us); }
+            peer_due = peer.take_due(now_us);
+        }
+        // Management before beacons, so a connect exchange is not crowded out.
+        // Leftovers go back to the queue they came from: a peer frame must not
+        // sit on the virtual AP and hold its beacons.
+        let Some(frame) = Self::next_air_frame(&mut ap_due, &mut peer_due) else { return };
+        self.wifi_rx_deliver(&frame, now_us);
+        self.periph.wifi.last_rx_us = now_us;
+        if let Some(ap) = &mut self.periph.wifi.ap { for a in ap_due { ap.queue.push(a); } }
+        if let Some(peer) = &mut self.periph.wifi.peer { peer.requeue(peer_due); }
+    }
+
+    /// Write one received frame into the next RX descriptor (rx_ctrl header + frame + FCS) and raise the RX event.
+    #[allow(clippy::identity_op, reason = "rx_state zero remains visible in the packed descriptor layout")]
+    fn wifi_rx_deliver(&mut self, frame: &[u8], now_us: u64) {
+        let desc = self.periph.wifi.rx_next | crate::periph::DMA_ADDR_BASE;
+        if desc == 0 { self.periph.wifi.rx_dropped += 1; return; }
+        let dw0 = self.read32_unpriced(desc).unwrap_or(0); let buf = self.read32_unpriced(desc + 4).unwrap_or(0); let next = self.read32_unpriced(desc + 8).unwrap_or(0);
+        let size = (dw0 & 0xfff) as usize;
+        let total = 48 + frame.len() + 4;
+        if dw0 & (1 << 31) == 0 || buf == 0 || size < total { self.periph.wifi.rx_dropped += 1; return; }
+        let (chan, from_peer, log) = {
+            let ap = self.periph.wifi.ap.as_ref().unwrap();
+            let from_peer = frame.len() >= 16 && self.periph.wifi.peer.as_ref().is_some_and(|peer| frame[10..16] == peer.mac);
+            let chan = if from_peer {
+                self.periph.wifi.peer.as_ref().map(|peer| peer.channel as u32).unwrap_or(ap.cfg.channel as u32)
+            } else {
+                ap.cfg.channel as u32
+            };
+            (chan, from_peer, ap.log)
+        };
+        let mut b = Vec::with_capacity(total);
+        // Filter-match bits in rx_ctrl word 0. Bit 28 is the station-interface match
+        // (silicon: a broadcast beacon reads 0x111b20ad). Unicast to the station adds
+        // bit 29. A frame for the SoftAP is the other way around: bit 29 alone is what
+        // `wDev_ProcessRxSucData` accepts once the AP interface is enabled, and bit 28
+        // would make `ppRxPkt` deliver it to `sta_rx_cb` instead of `ap_rx_cb`.
+        let bcast = frame.len() >= 5 && frame[4] & 1 == 1;
+        let fm = if from_peer {
+            1u32 << 29
+        } else if bcast {
+            1u32 << 28
+        } else {
+            (1u32 << 28) | (1u32 << 29)
+        };
+        let w0: u32 = fm | (0xd8u32 & 0xff);   // rssi -40 dBm, 1 Mbps, legacy
+        let w2: u32 = (chan << 16) | (chan << 20);                                        // channel, secondary
+        let w5: u32 = 0xa6;                                                                // noise floor -90
+        let w11: u32 = ((frame.len() + 4) as u32 & 0xfff) | (0 << 24);                    // sig_len (incl. FCS), rx_state OK
+        for w in [w0, 0, w2, now_us as u32, 0, w5, 0, 0, 0, 0, 0, w11] { b.extend_from_slice(&w.to_le_bytes()); }
+        b.extend_from_slice(frame); b.extend_from_slice(&crate::wifi::fcs(frame).to_le_bytes());
+        let mut i = 0usize;
+        while i + 4 <= b.len() { let v = u32::from_le_bytes([b[i], b[i + 1], b[i + 2], b[i + 3]]); let _ = self.write32_unpriced(buf + i as u32, v); i += 4; }
+        while i < b.len() { let _ = self.write8_unpriced(buf + i as u32, b[i]); i += 1; }
+        let ndw0 = (dw0 & !(0xfff << 12)) | ((total as u32) << 12) | (1 << 30) | (1 << 31);   // length; owner AND has_data set (verified on silicon 2026-08-25: dw0=0xc0..)
+        let _ = self.write32_unpriced(desc, ndw0);
+        let w = &mut self.periph.wifi;
+        w.rx_last = (desc & 0xf_ffff) | (1 << 24); w.rx_next = next & 0xf_ffff; w.last_rx_desc = desc; w.rx_frames += 1; w.events |= (1 << 14) | (1 << 24);   // RX data (wDev_ProcessFiq tests 0x1004000)   // registers hold masked descriptor addrs; rx_last has a 0x01 prefix (silicon)
+        if log { let d = crate::wifi::describe(frame); if d.contains("auth")||d.contains("assoc") { eprintln!("[wifi] RX AUTH/ASSOC -> desc {:#010x} buf {:#010x} {}", desc, buf, d); } else { eprintln!("[wifi] RX -> desc {:#010x} {}", desc, d); } }
+        self.irq_dirty = true;
+    }
+
+    pub fn load_bytes(&mut self, addr: u32, data: &[u8]) -> Result<(), String> {
+        for (i, b) in data.iter().enumerate() {
+            let a = addr.wrapping_add(i as u32);
+            let Some(e) = self.lookup(a) else { return Err(format!("load: address {:#010x} not mapped", a)) };
+            let o = e.off as usize + (a - e.lo) as usize;
+            self.buf_mut(e.src as u8)[o] = *b;
+            self.bump(e.vbase, o - e.off as usize, 1);
+        }
+        Ok(())
+    }
+}
+
+impl CacheResource {
+    fn reserve(&mut self, ready: u32, service: u32) -> u64 {
+        if service == 0 { return 0; }
+        let start = self.cursor.max(self.busy_until);
+        let wait = start - self.cursor;
+        self.cursor = start.saturating_add(u64::from(ready));
+        self.busy_until = start.saturating_add(u64::from(service));
+        wait
+    }
+}
+
+impl SocBus {
+    // Const specialization keeps origin checks and CPU pricing out of DMA/host accessors.
+    fn read8_access<const CPU: bool>(&mut self, addr: u32) -> Result<u8, Fault> {
+        if Self::is_periph(addr) { self.last_fault = Some((addr, false)); return Err(Fault::Prohibited); }
+        let Some(e) = self.lookup(addr) else { self.last_fault = Some((addr, false)); return Err(Fault::Unmapped) };
+        if CPU { self.price_cached_data(e, addr, 1, false); }
+        Ok(self.buf(e.src as u8)[e.off as usize + (addr - e.lo) as usize])
+    }
+    fn read16_access<const CPU: bool>(&mut self, addr: u32) -> Result<u16, Fault> {
+        if Self::is_periph(addr) { self.last_fault = Some((addr, false)); return Err(Fault::Prohibited); }
+        match self.lookup(addr) {
+            Some(e) if e.hi - addr >= 2 => { if CPU { self.price_cached_data(e, addr, 2, false); } let o = e.off as usize + (addr - e.lo) as usize; Ok(u16::from_le_bytes(self.buf(e.src as u8)[o..o + 2].try_into().unwrap())) }
+            Some(_) => Ok(u16::from_le_bytes([self.read8_access::<CPU>(addr)?, self.read8_access::<CPU>(addr + 1)?])),       // straddles a page
+            None => { self.last_fault = Some((addr, false)); Err(Fault::Unmapped) }
+        }
+    }
+    fn read32_access<const CPU: bool>(&mut self, addr: u32) -> Result<u32, Fault> {
+        if Self::is_periph(addr) {
+            if addr & 3 != 0 { self.last_fault = Some((addr, false)); return Err(Fault::Misaligned); }
+            return Ok(self.periph_read(addr));
+        }
+        match self.lookup(addr) {
+            Some(e) if e.hi - addr >= 4 => { if CPU { self.price_cached_data(e, addr, 4, false); } let o = e.off as usize + (addr - e.lo) as usize; Ok(u32::from_le_bytes(self.buf(e.src as u8)[o..o + 4].try_into().unwrap())) }
+            Some(_) => Ok(u32::from_le_bytes([self.read8_access::<CPU>(addr)?, self.read8_access::<CPU>(addr + 1)?, self.read8_access::<CPU>(addr + 2)?, self.read8_access::<CPU>(addr + 3)?])),
+            None => { self.last_fault = Some((addr, false)); Err(Fault::Unmapped) }
+        }
+    }
+    fn write8_access<const CPU: bool>(&mut self, addr: u32, v: u8) -> Result<(), Fault> {
+        // S3 register writes are modelled only as aligned words (TRM §15.6.6).
+        // Reject unsupported widths before reading a device or advancing its time.
+        // This is an explicit emulator policy, not a model of optional PMS IRQs.
+        if Self::is_periph(addr) { self.last_fault = Some((addr, true)); return Err(Fault::Prohibited); }
+        match self.lookup(addr) {
+            Some(e) if e.writable != 0 => { if CPU { self.price_cached_data(e, addr, 1, true); } let rel = (addr - e.lo) as usize; self.buf_mut(e.src as u8)[e.off as usize + rel] = v; if e.code != 0 { self.bump(e.vbase, rel, 1); } Ok(()) }
+            _ => { self.last_fault = Some((addr, true)); Err(Fault::Prohibited) }
+        }
+    }
+    fn write16_access<const CPU: bool>(&mut self, addr: u32, v: u16) -> Result<(), Fault> {
+        if Self::is_periph(addr) { self.last_fault = Some((addr, true)); return Err(Fault::Prohibited); }
+        match self.lookup(addr) {
+            Some(e) if e.writable != 0 && e.hi - addr >= 2 => { if CPU { self.price_cached_data(e, addr, 2, true); } let rel = (addr - e.lo) as usize; let o = e.off as usize + rel; self.buf_mut(e.src as u8)[o..o + 2].copy_from_slice(&v.to_le_bytes()); if e.code != 0 { self.bump(e.vbase, rel, 2); } Ok(()) }
+            Some(e) if e.writable != 0 => { let b = v.to_le_bytes(); self.write8_access::<CPU>(addr, b[0])?; self.write8_access::<CPU>(addr + 1, b[1]) }
+            _ => { self.last_fault = Some((addr, true)); Err(Fault::Prohibited) }
+        }
+    }
+    fn write32_access<const CPU: bool>(&mut self, addr: u32, v: u32) -> Result<(), Fault> {
+        if Self::is_periph(addr) {
+            if addr & 3 != 0 { self.last_fault = Some((addr, true)); return Err(Fault::Misaligned); }
+            self.periph_write(addr, v); return Ok(());
+        }
+        match self.lookup(addr) {
+            Some(e) if e.writable != 0 && e.hi - addr >= 4 => { if CPU { self.price_cached_data(e, addr, 4, true); } let rel = (addr - e.lo) as usize; let o = e.off as usize + rel; self.buf_mut(e.src as u8)[o..o + 4].copy_from_slice(&v.to_le_bytes()); if e.code != 0 { self.bump(e.vbase, rel, 4); } Ok(()) }
+            Some(e) if e.writable != 0 => { let b = v.to_le_bytes(); for i in 0..4 { self.write8_access::<CPU>(addr + i, b[i as usize])?; } Ok(()) }
+            _ => { self.last_fault = Some((addr, true)); Err(Fault::Prohibited) }
+        }
+    }
+}
+
+impl Bus for SocBus {
+    #[inline]
+    fn read8(&mut self, addr: u32) -> Result<u8, Fault> { self.read8_access::<true>(addr) }
+    fn read8_unpriced(&mut self, addr: u32) -> Result<u8, Fault> { self.read8_access::<false>(addr) }
+    #[inline]
+    fn read16(&mut self, addr: u32) -> Result<u16, Fault> { self.read16_access::<true>(addr) }
+    fn read16_unpriced(&mut self, addr: u32) -> Result<u16, Fault> { self.read16_access::<false>(addr) }
+    #[inline]
+    fn read32(&mut self, addr: u32) -> Result<u32, Fault> { self.read32_access::<true>(addr) }
+    fn read32_unpriced(&mut self, addr: u32) -> Result<u32, Fault> { self.read32_access::<false>(addr) }
+    #[inline]
+    fn write8(&mut self, addr: u32, v: u8) -> Result<(), Fault> { self.write8_access::<true>(addr, v) }
+    fn write8_unpriced(&mut self, addr: u32, v: u8) -> Result<(), Fault> { self.write8_access::<false>(addr, v) }
+    #[inline]
+    fn write16(&mut self, addr: u32, v: u16) -> Result<(), Fault> { self.write16_access::<true>(addr, v) }
+    fn write16_unpriced(&mut self, addr: u32, v: u16) -> Result<(), Fault> { self.write16_access::<false>(addr, v) }
+    #[inline]
+    fn write32(&mut self, addr: u32, v: u32) -> Result<(), Fault> { self.write32_access::<true>(addr, v) }
+    fn write32_unpriced(&mut self, addr: u32, v: u32) -> Result<(), Fault> { self.write32_access::<false>(addr, v) }
+    fn fetch(&mut self, pc: u32) -> Result<[u8; 4], Fault> {
+        let Some(e) = self.lookup(pc) else { self.last_fault = Some((pc, false)); return Err(Fault::Unmapped) };
+        let o = e.off as usize + (pc - e.lo) as usize;
+        let b = self.buf(e.src as u8);
+        if let Some(w) = b.get(o..o + 4) { return Ok(w.try_into().unwrap()); }
+        // last bytes of a buffer (or of a mapped page): what physical memory has, zero beyond
+        let mut r = [0u8; 4];
+        for (i, byte) in r.iter_mut().enumerate() { if let Some(x) = b.get(o + i) { *byte = *x; } }
+        Ok(r)
+    }
+    #[inline(always)]
+    fn page_versions(&self) -> &[u32] { &self.page_ver }
+    /// shell-s2: flash pages change only through `bump`, `note_written`, DMA `bump_run` and
+    /// `invalidate_tlb`, which all call `touched` or move the epoch; generated stores need a writable
+    /// mapping and flash never has one. The last flash page is left out: the EX180 previous-page rule
+    /// lets a generated or DMA store to the first bytes of PSRAM bump it without the bus.
+    /// hop-s2b: mask ROM (just below flash) too: it is never mapped writable and changes only through
+    /// the same calls; its first page is left out, next to SRAM's last.
+    #[inline(always)]
+    fn stable_pages(&self) -> (u32, u32, u64) { (self.ver_base[SRC_IROM as usize] + 1, self.ver_base[SRC_PSRAM as usize].saturating_sub(1), self.flash_epoch) }
+    fn note_code_page(&mut self, vidx: u32) { self.watch_code_page(vidx); }
+    #[inline(always)]
+    fn note_pc(&mut self, pc: u32) { self.periph.misc.cur_pc = pc; }
+    fn fast_mem(&mut self) -> Option<FastMem> { if self.approximate_cache.is_some() && !self.approximate_cache_fast_internal { None } else { Some(FastMem { tlb: self.tlb.as_ptr(), page_ver: self.page_ver.as_mut_ptr() }) } }
+    fn read_bulk(&mut self, addr: u32, out: &mut [u8]) -> bool {
+        // Only a range inside one mapped entry with no peripheral behind it: exactly what the
+        // per-word reads would return, without their per-word lookups or fault reporting.
+        if Self::is_periph(addr) { return false; }
+        let Some(e) = self.lookup(addr) else { return false };
+        // Packed PIE falls back to its four word reads when external-cache timing
+        // is enabled, so fills, hits and queued service are accounted for normally.
+        if self.approximate_cache.is_some() && matches!(e.src as u8, SRC_FLASH | SRC_PSRAM) { return false; }
+        if u64::from(addr) + out.len() as u64 > u64::from(e.hi) { return false; }
+        let o = e.off as usize + (addr - e.lo) as usize;
+        match self.buf(e.src as u8).get(o..o + out.len()) { Some(bytes) => { out.copy_from_slice(bytes); true } None => false }
+    }
+    fn take_timing_penalty(&mut self) -> u32 { self.take_approximate_cache_penalty() }
+    fn add_timing_penalty(&mut self, cycles: u32) {
+        self.approximate_cache_pending = self.approximate_cache_pending.saturating_add(cycles);
+    }
+    fn fast_cache(&mut self) -> Option<emu_core::bus::FastCache> {
+        if self.approximate_cache_inline { self.approximate_cache.as_mut().and_then(|c| c.inline_view()) } else { None }
+    }
+    fn begin_timing_batch(&mut self, core: usize, now: u64) {
+        self.cache_resource.core = core.min(1);
+        self.cache_resource.cursor = now;
+    }
+    #[inline(always)]
+    fn block_break(&self) -> bool { self.irq_dirty || (self.approximate_cache_yield_miss && self.approximate_cache_pending != 0) }
+    #[inline(always)]
+    fn defer_armed(&self) -> bool { self.defer_mmio }
+    #[inline(always)]
+    fn defer_access(&mut self, addr: u32) -> bool {
+        // PIE ld.qr/st.qr add [-128,112] before accessing memory; MAC16 loads
+        // add +/-4. Their conservative AR scan must also catch boundary crossings.
+        if self.defer_mmio && (PERIPH_BASE - 128..PERIPH_END + 128).contains(&addr) {
+            self.mmio_deferred = true; true
+        } else { false }
+    }
+    #[inline(always)]
+    fn deferred(&self) -> bool { self.mmio_deferred }
+    fn code_page(&mut self, pc: u32) -> u32 {
+        match self.lookup(pc) { Some(e) => e.vbase + ((pc - e.lo) >> VPAGE_SHIFT), None => self.page_ver.len() as u32 - 1 }
+    }
+    /// Returns 1 when interrupt inputs may have changed. Device time can advance
+    /// without requesting a full interrupt-source scan.
+    fn tick(&mut self, cycles: u32) -> u32 {
+        self.cycles += cycles as u64;
+        self.tick_pending += cycles;
+        if self.tick_pending < self.tick_budget { return 0; }
+        self.flush_ticks();
+        u32::from(self.irq_dirty)
+    }
+}
+
+impl SocBus {
+    fn cadence_active(&self) -> bool {
+        let p = &self.periph;
+        p.i2s0.tx_running() || p.i2s1.tx_running() || p.i2s0.rx_running() || p.i2s1.rx_running()
+            || p.lcd_cam.running || p.lcd_cam.lcd_running()
+            // EX157: a running GDMA IN channel is passive. Its only producers are the camera
+            // (lcd_cam.running), AES (dma_pending) and mem-to-mem (needs the OUT side running),
+            // all listed here, so an armed-but-idle receive channel does not hold the cadence.
+            || p.gdma.out.iter().any(|c| c.running)
+            || p.wifi.ap.is_some() || p.wifi.net.is_some() || !p.wifi.tx_pending.is_empty()
+            || p.aes.dma_pending || p.sha.dma_pending
+            || p.spi2.has_pending_transfer() || p.spi2.dma_tx_pending.is_some()
+            || p.spi3.has_pending_transfer() || p.spi3.dma_tx_pending.is_some()
+            || p.rmt.ch.iter().any(|c| c.running) || !p.rmt.done.is_empty()
+            || !p.gpio.changes.is_empty() || !p.gpio.input_changes.is_empty()
+            || p.rtc.ram.read(0x98) & (1 << 31) != 0
+            || p.usb.int_ena & (1 << 1) != 0
+    }
+
+    /// Board-driven input edges (e.g. a panel's BUSY line) reach the GPIO matrix.
+    pub(crate) fn apply_board_edges(&mut self) {
+        for edge in self.board.take_edges() {
+            if let Some(events) = &mut self.gpio_events { events.push((edge.cycle, edge.pin, edge.level)); }
+            let old_input = self.periph.gpio.input;
+            self.periph.gpio.set_input(edge.pin, edge.level);
+            // set_input reports latched edges only. Level IRQs can rise or fall
+            // when the input changes, so both polarities require a refresh too.
+            self.irq_dirty |= old_input != self.periph.gpio.input;
+        }
+    }
+
+    /// Refresh the cached deadline after host-side device configuration changes.
+    /// Pending elapsed cycles are retained and count toward the new threshold.
+    pub fn refresh_tick_budget(&mut self) {
+        let cap = if self.cadence_active() { MAX_TICK_DEFER } else { QUIET_TICK_DEFER };
+        let mut budget = self.periph.cycles_until_timer().clamp(1, cap);
+        if let Some((deadline, _)) = &self.spi2_scheduled {
+            let until = u64::from(self.tick_pending).saturating_add(deadline.saturating_sub(self.cycles));
+            budget = budget.min(until.clamp(1, u64::from(MAX_TICK_DEFER)) as u32);
+        }
+        if let Some(deadline) = self.board.next_deadline() {
+            let until_deadline = u64::from(self.tick_pending)
+                .saturating_add(deadline.saturating_sub(self.cycles))
+                .clamp(1, u64::from(cap));
+            budget = budget.min(until_deadline as u32);
+        }
+        self.tick_budget = budget;
+    }
+
+    /// Deliver the deferred cycles to the device models now.
+    pub fn flush_ticks(&mut self) {
+        let c = std::mem::take(&mut self.tick_pending);
+        if c == 0 { return; }
+        self.tick_impl(c);
+        self.refresh_tick_budget();
+    }
+
+    fn tick_impl(&mut self, cycles: u32) -> u32 {
+        // Reads may flush before the periodic backstop. Refresh for either edge
+        // of a clocked source, without breaking every block that polls MMIO.
+        self.irq_dirty |= self.periph.tick(cycles as u64);
+        self.board.advance_to(self.cycles);
+        self.apply_board_edges();
+        self.service_gpspi();
+        self.dma_i2s_step(cycles as u64);
+        self.dma_cam_step(cycles as u64);
+        self.dma_lcd_step(cycles as u64);
+        self.dma_m2m_step();
+        if !self.periph.wifi.tx_pending.is_empty() { self.wifi_tx_step(); }
+        self.softap_relay_step();
+        if self.periph.aes.dma_pending { self.aes_dma_step(); }
+        if self.periph.sha.dma_pending { self.sha_dma_step(); }
+        if self.periph.wifi.ap.is_some() { self.wifi_air_step(); }
+        if let Some(net) = &mut self.periph.wifi.net {
+            let now_us = self.cycles / (crate::periph::CPU_HZ / 1_000_000);
+            let out = std::mem::take(&mut self.periph.wifi.eth_tx);
+            // Frames from the station are handled the moment they are sent, but reading the host
+            // sockets means syscalls: doing that every scheduling round costs more than emulating
+            // the CPU. NET_POLL_US is well under any timeout the guest's TCP stack cares about.
+            const NET_POLL_US: u64 = 500;
+            let due = now_us.wrapping_sub(self.periph.wifi.net_polled_us) >= NET_POLL_US;
+            if !out.is_empty() || due {
+                if due { self.periph.wifi.net_polled_us = now_us; }
+                let mut replies = Vec::new();
+                for e in out { replies.extend(net.handle(&e, now_us)); }
+                replies.extend(net.poll(now_us));
+                self.periph.wifi.eth_rx.extend(replies);
+            }
+        }
+        if !self.periph.gpio.changes.is_empty() {
+            let ch = std::mem::take(&mut self.periph.gpio.changes);
+            if let Some(ev) = &mut self.gpio_events { for &(pin, level) in &ch { ev.push((self.cycles, pin, level)); } }
+            self.board.gpio_changes(&ch);
+        }
+        self.deliver_spi_transfer(2);
+        self.deliver_spi_transfer(3);
+        if !self.periph.rmt.done.is_empty() {
+            for (ch, bits) in std::mem::take(&mut self.periph.rmt.done) {
+                let pin = self.periph.gpio.pin_for_signal(RMT_SIG_OUT0 + ch as u32).unwrap_or(u8::MAX);
+                self.board.rmt_frame(pin, &bits);
+            }
+            self.irq_dirty = true;
+        }
+        0
+    }
+}
+
+// ---------------------------------------------------------------- snapshot (G7, NOTE fork)
+
+/// What a snapshot keeps of the bus: every memory the guest can change, the flash MMU, all
+/// peripherals and the device time not yet delivered. ROM images, the board (snapshotted by its
+/// owner), debug/observer hooks, experiment configuration and the software TLB, page versions
+/// and code-watch bits (caches, rebuilt) are left out.
+#[derive(serde::Serialize)]
+struct BusStateRef<'a> {
+    #[serde(serialize_with = "emu_core::snap::bytes::serialize")] sram: &'a [u8],
+    #[serde(serialize_with = "emu_core::snap::bytes::serialize")] rtc_fast: &'a [u8],
+    #[serde(serialize_with = "emu_core::snap::bytes::serialize")] rtc_slow: &'a [u8],
+    #[serde(serialize_with = "emu_core::snap::bytes::serialize")] flash: &'a [u8],
+    #[serde(serialize_with = "emu_core::snap::bytes::serialize")] psram: &'a [u8],
+    #[serde(serialize_with = "emu_core::snap::arr::serialize")] mmu: &'a [u32; MMU_ENTRIES],
+    cycles: u64,
+    last_fault: Option<(u32, bool)>,
+    spi2_dma_fault: &'a Option<DmaDescriptorFault>,
+    spi3_dma_fault: &'a Option<DmaDescriptorFault>,
+    spi2_scheduled: &'a Option<(u64, Spi2DmaCompletion)>,
+    irq_dirty: bool,
+    tick_pending: u32,
+    tick_budget: u32,
+    cache_resource: &'a CacheResource,
+    approximate_cache_pending: u32,
+}
+
+#[derive(serde::Deserialize)]
+struct BusState {
+    #[serde(with = "emu_core::snap::bytes")] sram: Vec<u8>,
+    #[serde(with = "emu_core::snap::bytes")] rtc_fast: Vec<u8>,
+    #[serde(with = "emu_core::snap::bytes")] rtc_slow: Vec<u8>,
+    #[serde(with = "emu_core::snap::bytes")] flash: Vec<u8>,
+    #[serde(with = "emu_core::snap::bytes")] psram: Vec<u8>,
+    #[serde(with = "emu_core::snap::arr")] mmu: [u32; MMU_ENTRIES],
+    cycles: u64,
+    last_fault: Option<(u32, bool)>,
+    spi2_dma_fault: Option<DmaDescriptorFault>,
+    spi3_dma_fault: Option<DmaDescriptorFault>,
+    spi2_scheduled: Option<(u64, Spi2DmaCompletion)>,
+    irq_dirty: bool,
+    tick_pending: u32,
+    tick_budget: u32,
+    cache_resource: CacheResource,
+    approximate_cache_pending: u32,
+}
+
+impl SocBus {
+    /// Serialize the machine side of the bus. Peripherals come second so a restore can apply
+    /// them in place (host sockets and board devices stay attached).
+    pub fn save_state(&self) -> Result<Vec<u8>, emu_core::snap::SnapError> {
+        let state = emu_core::snap::to_bytes(&BusStateRef {
+            sram: &self.sram, rtc_fast: &self.rtc_fast, rtc_slow: &self.rtc_slow, flash: &self.flash, psram: &self.psram,
+            mmu: &self.mmu, cycles: self.cycles, last_fault: self.last_fault, spi2_dma_fault: &self.spi2_dma_fault,
+            spi3_dma_fault: &self.spi3_dma_fault, spi2_scheduled: &self.spi2_scheduled, irq_dirty: self.irq_dirty,
+            tick_pending: self.tick_pending, tick_budget: self.tick_budget, cache_resource: &self.cache_resource,
+            approximate_cache_pending: self.approximate_cache_pending,
+        })?;
+        let periph = emu_core::snap::to_bytes(&self.periph)?;
+        emu_core::snap::to_bytes(&(state, periph))
+    }
+
+    /// Replace the bus's machine state. Sizes must match this bus (same profile and PSRAM); on a
+    /// size mismatch nothing is changed. Every cached decode, block and mapping is invalidated.
+    pub fn restore_state(&mut self, bytes: &[u8]) -> Result<(), emu_core::snap::SnapError> {
+        let err = |m: String| emu_core::snap::SnapError(m);
+        let (state, periph): (Vec<u8>, Vec<u8>) = emu_core::snap::from_bytes(bytes)?;
+        let s: BusState = emu_core::snap::from_bytes(&state)?;
+        for (name, have, want) in [("sram", self.sram.len(), s.sram.len()), ("rtc_fast", self.rtc_fast.len(), s.rtc_fast.len()),
+                                   ("rtc_slow", self.rtc_slow.len(), s.rtc_slow.len()), ("flash", self.flash.len(), s.flash.len()),
+                                   ("psram", self.psram.len(), s.psram.len())] {
+            if have != want { return Err(err(format!("{name}: snapshot has {want} bytes, this machine {have}"))); }
+        }
+        // Peripherals first: if they do not fit, memories are still untouched.
+        emu_core::snap::restore_in_place(&periph, &mut self.periph)?;
+        self.sram.copy_from_slice(&s.sram);
+        self.rtc_fast.copy_from_slice(&s.rtc_fast);
+        self.rtc_slow.copy_from_slice(&s.rtc_slow);
+        self.flash.copy_from_slice(&s.flash);
+        self.psram.copy_from_slice(&s.psram);
+        self.mmu = s.mmu;
+        self.cycles = s.cycles;
+        self.last_fault = s.last_fault;
+        self.spi2_dma_fault = s.spi2_dma_fault;
+        self.spi3_dma_fault = s.spi3_dma_fault;
+        self.spi2_scheduled = s.spi2_scheduled;
+        self.tick_pending = s.tick_pending;
+        self.tick_budget = s.tick_budget;
+        self.cache_resource = s.cache_resource;
+        self.approximate_cache_pending = s.approximate_cache_pending;
+        for src in [SRC_SRAM, SRC_RTC_FAST, SRC_RTC_SLOW, SRC_FLASH, SRC_PSRAM] {
+            let len = self.buf(src).len();
+            self.note_written(src, 0, len);
+        }
+        self.invalidate_tlb();
+        self.irq_dirty = true;
+        self.periph.intmatrix_dirty = true;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+#[path = "bus/cache_tests.rs"]
+mod cache_tests;
+#[cfg(test)]
+#[path = "bus/tests.rs"]
+mod gp_spi_board_tests;
+#[cfg(test)]
+#[path = "bus/dma_tests.rs"]
+mod dma_tests;
+
+#[cfg(test)]
+#[path = "bus/memory_origin_tests.rs"]
+mod memory_origin_regressions;

@@ -1,0 +1,35 @@
+{
+  "version": {
+    "Browser": "Chrome/152.0.7977.77",
+    "Protocol-Version": "1.3",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/152.0.0.0 Safari/537.36",
+    "V8-Version": "15.2.124.19",
+    "WebKit-Version": "537.36 (@529d9a34b491745086b59458f58a5aae8292adaa)",
+    "webSocketDebuggerUrl": "ws://127.0.0.1:9228/devtools/browser/d5496a9f-85ae-4b40-b178-93f36a50f1c6"
+  },
+  "result": {
+    "type": "result",
+    "status": "completed",
+    "stopCode": 0,
+    "verdict": "TINYDRAW_GATE1_AUTOMATED_DONE native_kernels=1 minimap_navigation=1 color_dialog=1 cooperative_compose=1 stress=1 stress_100=1 stress_400=1 overlap_ready=1 overlap_cold=1 general_cold_ready=1 general_cold=1 owner_document=1 workload=1 paced_cold=1 hard_100=1 hard_400=1 pan_100=1 pan_400=1 ring_local=1 pan_seq=1 pan_boundary=1 live_overlay=1 draw_fill=1 cache=1 full_world_cache=1 cache_tour=1 mixed_draw=1 idle_repair=1 ink_trace=1 hairline_capacity=1 long_gesture=1 history_latency=1 settle_timing=1 export_encode=1 export_reserve=1 return=1 ssaa_receipt=yellow",
+    "passed": true,
+    "guestSeconds": 47.75085146666667,
+    "wallSeconds": 125.91406499999762,
+    "setupSeconds": 0.13685500000417233,
+    "instructions": 9820325756,
+    "frames": 101,
+    "chainedBackedges": 0,
+    "jit": {
+      "compiled": 10634,
+      "failed": 0,
+      "released": 6978,
+      "compileMs": 811.1699999570847,
+      "bytes": 63104875,
+      "liveBytes": 21020531,
+      "peakBytes": 23662609,
+      "peakModules": 4337,
+      "instructions": 6023686459
+    },
+    "logs": []
+  }
+}

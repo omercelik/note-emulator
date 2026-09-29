@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><title>TinyDraw WASM repeated comparison</title>
+<style>body{font:15px monospace;background:#131823;color:#d9e5f5;margin:30px}pre{white-space:pre-wrap}</style>
+<h1>TinyDraw browser battery · repeated comparison</h1><p id="status">Starting…</p><pre id="results"></pre><pre id="console"></pre>
+<script type="module">
+const runs=[['before-1','before',1],['before-2','before',1],['after-1','after',1],['after-2','after',1],['before-3','before',1],['after-3','after',1],['interpreter','after',0]];
+for(const [id,wasm,jit] of runs){
+ await new Promise((resolve,reject)=>{
+  let serial='',queue=[{type:'environment',userAgent:navigator.userAgent,crossOriginIsolated,run:id}],pending=Promise.resolve();
+  function flush(){if(!queue.length)return pending;const body=queue.map(e=>JSON.stringify(e)).join('\n')+'\n';queue=[];pending=pending.then(()=>fetch('/events?id='+id,{method:'POST',body}).then(r=>{if(!r.ok)throw Error('receipt upload failed')}));return pending;}
+  const worker=new Worker('./worker.mjs?wasm='+wasm+'&jit='+jit,{type:'module'});
+  worker.onmessage=async({data:e})=>{queue.push(e);
+   if(e.type==='serial'){serial+=e.data;document.querySelector('#console').textContent=serial.slice(-3000);}
+   if(e.type==='progress'){document.querySelector('#status').textContent=id+': '+e.wallSeconds.toFixed(1)+' elapsed seconds';flush();}
+   if(e.type==='result'||e.type==='error'){await flush();worker.terminate();document.querySelector('#results').textContent+=id+': '+JSON.stringify(e)+'\n';if(e.type==='error'||!e.passed)reject(Error('battery failed'));else resolve();}
+  };
+  worker.onerror=reject;
+ });
+}
+document.querySelector('#status').textContent='All seven runs completed';
+</script>

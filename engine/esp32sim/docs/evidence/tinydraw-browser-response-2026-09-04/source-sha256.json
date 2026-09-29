@@ -1,0 +1,9 @@
+{
+  "esp32s3/src/board.rs": "a3c66efc3c96192bd257a3148838e8198544659b03c1aef8cf697dd64a455696",
+  "esp-soc/Cargo.toml": "f2e2d5e2396ca7c258e9d12f402227de5d8ce1f3395e3caee7a6bb986065b1b1",
+  "esp-soc/src/machine.rs": "967717955990a68a00f4a4e6dfa717350dbe56603425f216e4657864381c5652",
+  "xtensa-lx7/Cargo.toml": "3da9de8277b3f6f96551875e998b75c0103ff87c79d4944664b44d202e032bc9",
+  "xtensa-lx7/src/block.rs": "2ece7b5447d9f0eff122fc94cb66f707a6af9b0e0db91d2790389de39bfced1a",
+  "xtensa-lx7/src/jit/wasm.rs": "d7e7d57ac446150c7f87b2bcbc9163596fa155a35669e11052ba6c3907e007c1",
+  "wasm/Cargo.toml": "2fe54cae8b7c3e99ddfd2585141f547c697aa29f1cf0d967264fa317a3c641c0"
+}

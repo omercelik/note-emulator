@@ -1,0 +1,23 @@
+{
+  "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "compiler": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "node": "v26.7.0",
+  "batteryOrder": [
+    "final-baseline-1",
+    "final-combined-1",
+    "final-combined-2",
+    "final-baseline-2",
+    "final-baseline-3",
+    "final-combined-3"
+  ],
+  "drawingOrder": [
+    "final-drawing-baseline-1",
+    "final-drawing-combined-1",
+    "final-drawing-combined-2",
+    "final-drawing-baseline-2",
+    "final-drawing-baseline-3",
+    "final-drawing-combined-3"
+  ],
+  "productionBuild": "tools/wasm-build.sh; no profiling features",
+  "measurementControl": "Dedicated headless Chrome on localhost:9228. Production captures serial; agent builds/tests paused. Diagnostic capture excluded from timings."
+}

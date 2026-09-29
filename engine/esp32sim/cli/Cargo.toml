@@ -1,0 +1,30 @@
+[package]
+name = "esp32sim"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Run unmodified ESP32-S3, ESP32-C3 and ESP32-C6 firmware in an instruction-level emulator"
+
+[lib]
+name = "esp32sim"
+path = "src/lib.rs"
+
+[[bin]]
+name = "esp32sim"
+path = "src/main.rs"
+
+[[bin]]
+name = "esp32sim-c3"
+path = "src/bin/esp32sim-c3.rs"
+
+[[bin]]
+name = "esp32sim-c6"
+path = "src/bin/esp32sim-c6.rs"
+
+[dependencies]
+emu-core = { path = "../emu-core" }
+esp-periph = { path = "../esp-periph" }
+esp-soc = { path = "../esp-soc" }
+esp32s3 = { path = "../esp32s3" }
+esp32c3 = { path = "../esp32c3" }
+esp32c6 = { path = "../esp32c6" }

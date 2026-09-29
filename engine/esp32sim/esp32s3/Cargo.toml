@@ -1,0 +1,17 @@
+[package]
+name = "esp32s3"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ESP32-S3 SoC emulation (memory map, cache MMU, peripherals) on the xtensa-lx7 core"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_derive = { version = "1", features = ["deserialize_in_place"] }
+emu-core = { path = "../emu-core" }
+esp-periph = { path = "../esp-periph" }
+esp-soc = { path = "../esp-soc" }
+xtensa-lx7 = { path = "../xtensa-lx7" }
+
+[features]
+cache-inline = ["xtensa-lx7/wasm-cache-inline"]
