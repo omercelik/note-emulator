@@ -24,8 +24,13 @@ Add Bundled Device in the toolbar lets you add either later.
 The NOTE4C sample is [emini Home v0.6.2](https://github.com/fiedoruk/emini-home/releases/tag/v0.6.2),
 an English-first weather, headlines, and notes app. Setup networking is enabled for this sample; macOS may ask to install the network helper.
 On first boot, enter the hotspot password shown on its screen in Controls → Network → Device
-setup hotspot. Open the browser URL there and pair with the code on the screen. The password
+setup hotspot at the top of the Network tab. Open the browser URL there and pair with the code on the screen. The password
 must be entered again after the device stops. This is community firmware, not a factory image.
+
+For firmware joining a Wi-Fi network, expand **Simulated Wi-Fi network** in Controls → Network
+and enter the Wi-Fi name and password directly. Save applies at the next device start;
+importing a `.env` file is optional. These settings belong to the simulated access point,
+separately from the firmware's setup-hotspot password.
 
 To build from source:
 

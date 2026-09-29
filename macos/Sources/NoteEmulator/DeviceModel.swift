@@ -320,6 +320,7 @@ final class DeviceModel {
     }
 
     func connectSetupHotspot(password: String) async -> Bool {
+        lastError = ""
         do {
             _ = try await call([("method", .string("network.softap_password")), ("password", .string(password))])
             return true

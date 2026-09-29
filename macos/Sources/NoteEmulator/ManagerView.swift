@@ -165,6 +165,39 @@ final class ManagerModel {
         reload()
     }
 
+    /// Save form entries privately inside the device directory; no user-managed file is needed.
+    func saveWifiCredentials(ssid: String, password: String, avd: String) async -> Bool {
+        guard avds.contains(where: { $0.id == avd }), UUID(uuidString: avd) != nil else {
+            message = "Device not found"; return false
+        }
+        guard !ssid.isEmpty, ssid.utf8.count <= 32,
+              !ssid.contains(","), !ssid.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }),
+              !password.contains(","), password.utf8.allSatisfy({ $0 >= 32 && $0 <= 126 }),
+              password.isEmpty || (8...63).contains(password.utf8.count) else {
+            message = "Wi-Fi name must be 1–32 bytes; password must be empty or 8–63 ASCII characters. Commas and control characters are unsupported."
+            return false
+        }
+        do {
+            let dir = DataHome.url().appendingPathComponent("avd/\(avd).avd/wifi", isDirectory: true)
+            if !FileManager.default.fileExists(atPath: dir.path) {
+                try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: false,
+                    attributes: [.posixPermissions: 0o700])
+            }
+            try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
+            let file = dir.appendingPathComponent("network.env")
+            let text = "WIFI_SSID=\"\(ssid)\"\nWIFI_PASSWORD=\"\(password)\"\n"
+            try Data(text.utf8).write(to: file, options: .atomic)
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+            guard await ndb(["avd", "wifi", avd, "--env", file.path]) != nil else { return false }
+            message = ""
+            reload()
+            return true
+        } catch {
+            message = "Could not save Wi-Fi settings: \(error.localizedDescription)"
+            return false
+        }
+    }
+
     /// The app started this device, so closing its window turns it off. A device started by
     /// `ndb` or `note-emu` only has its window detached.
     func owns(_ avd: String) -> Bool {

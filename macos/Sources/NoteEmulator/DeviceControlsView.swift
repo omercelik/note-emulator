@@ -170,6 +170,26 @@ private struct NetworkTab: View {
 
     var body: some View {
         Form {
+            if model.networkActive == "user" || model.networkActive == "setup" {
+                Section("Device setup hotspot") {
+                    Text("If the device shows a Wi-Fi password, enter it here so this Mac can open its setup page. This password applies until the device stops.")
+                        .font(.callout).foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Password shown on the device")
+                        SecureField("Enter the displayed hotspot password", text: $hotspotPassword)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    Button("Apply Password") {
+                        Task {
+                            passwordApplied = await model.connectSetupHotspot(password: hotspotPassword)
+                            if passwordApplied { hotspotPassword = "" }
+                        }
+                    }
+                    .disabled(!(8...63).contains(hotspotPassword.utf8.count))
+                    if !model.lastError.isEmpty { Text(model.lastError).font(.caption).foregroundStyle(.red) }
+                    if passwordApplied { Text("Password applied. Open the browser URL below and use the device's pairing code.").font(.caption) }
+                }
+            }
             Section("Mode") {
                 LabeledContent("Active", value: model.networkActive)
                 if let avd {
@@ -194,21 +214,6 @@ private struct NetworkTab: View {
                         }
                         Button("Open in Browser") { if let url = URL(string: model.browserURL) { NSWorkspace.shared.open(url) } }
                     }
-                }
-            }
-            if model.networkActive == "user" || model.networkActive == "setup" {
-                Section("Device setup hotspot") {
-                    Text("If the device shows a Wi-Fi password, enter it here so this Mac can open its setup page. This password applies until the device stops.")
-                        .font(.callout).foregroundStyle(.secondary)
-                    SecureField("Password shown on the device", text: $hotspotPassword)
-                    Button("Apply Password") {
-                        Task {
-                            passwordApplied = await model.connectSetupHotspot(password: hotspotPassword)
-                            if passwordApplied { hotspotPassword = "" }
-                        }
-                    }
-                    .disabled(!(8...63).contains(hotspotPassword.utf8.count))
-                    if passwordApplied { Text("Password applied. Open the browser URL above and use the device's pairing code.").font(.caption) }
                 }
             }
         }
@@ -273,35 +278,72 @@ private struct ControlsSectionPicker: View {
     }
 }
 
-/// The virtual AP's Wi-Fi credentials: a dotenv file (mode 0600) with WIFI_SSID / WIFI_PASSWORD,
-/// for firmware with compiled-in home Wi-Fi. Only the path is stored.
+/// Credentials of the access point simulated for firmware joining a Wi-Fi network.
 private struct WifiEnvRow: View {
     let avd: String
     var running = false
+    @State private var ssid = ""
+    @State private var password = ""
+    @State private var feedback = ""
     private var manager: ManagerModel { ManagerModel.shared }
-
     private var path: String? { manager.avds.first { $0.id == avd }?.wifiEnv }
 
     var body: some View {
-        LabeledContent("Wi-Fi credentials") {
+        DisclosureGroup("Simulated Wi-Fi network") {
+            Text("For firmware connecting to Wi-Fi. The device's setup hotspot password goes in Device setup hotspot above.")
+                .font(.caption).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Wi-Fi name (SSID)")
+                TextField("esp32sim", text: $ssid).textFieldStyle(.roundedBorder)
+                Text("Wi-Fi password")
+                SecureField("Leave empty for an open network", text: $password).textFieldStyle(.roundedBorder)
+            }
             HStack {
-                Text(path.map { ($0 as NSString).abbreviatingWithTildeInPath } ?? "None: open network \"esp32sim\"")
-                    .foregroundStyle(path == nil ? .secondary : .primary)
-                    .lineLimit(1).truncationMode(.middle)
-                Button("Choose…") { choose() }
+                Button("Save Wi-Fi Settings") {
+                    Task {
+                        if await manager.saveWifiCredentials(ssid: ssid, password: password, avd: avd) {
+                            feedback = running ? "Saved. Stop and start the device to apply." : "Saved. Applies when the device starts."
+                        } else { feedback = manager.message }
+                    }
+                }
+                .disabled(ssid.isEmpty)
                 if path != nil {
-                    Button("Clear") { Task { await manager.setWifiEnv(nil, avd: avd) } }
+                    Button("Use default network") {
+                        Task {
+                            await manager.setWifiEnv(nil, avd: avd)
+                            ssid = ""; password = ""
+                            feedback = running ? "Default selected. Stop and start to apply." : "Default network: esp32sim (open)."
+                        }
+                    }
                 }
             }
+            if !feedback.isEmpty { Text(feedback).font(.caption) }
+            DisclosureGroup("Import settings from a file") {
+                Button("Import .env…") { choose() }
+                Text("Optional developer import: WIFI_SSID and WIFI_PASSWORD in a private .env file.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
-        .help("A .env file (mode 0600) whose WIFI_SSID and WIFI_PASSWORD the virtual access point uses, so firmware with your home Wi-Fi compiled in can join it.\(running ? " Applies at the next start." : "")")
+        .task(id: path) {
+            guard let path, let text = try? String(contentsOfFile: path, encoding: .utf8) else { return }
+            for line in text.components(separatedBy: .newlines) {
+                let parts = line.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "export ", with: "", options: .anchored).split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+                guard parts.count == 2 else { continue }
+                var value = String(parts[1]).trimmingCharacters(in: .whitespaces)
+                if value.count >= 2 && ((value.first == "\"" && value.last == "\"") || (value.first == "'" && value.last == "'")) {
+                    value.removeFirst(); value.removeLast()
+                }
+                if parts[0].trimmingCharacters(in: .whitespaces) == "WIFI_SSID" { ssid = value }
+                if parts[0].trimmingCharacters(in: .whitespaces) == "WIFI_PASSWORD" { password = value }
+            }
+        }
     }
 
     private func choose() {
         let panel = NSOpenPanel()
         panel.showsHiddenFiles = true
         panel.canChooseDirectories = false
-        panel.message = "Choose a .env file with WIFI_SSID and WIFI_PASSWORD (mode 0600)"
+        panel.message = "Import WIFI_SSID and WIFI_PASSWORD from a private .env file"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task { await manager.setWifiEnv(url, avd: avd) }
     }
@@ -341,6 +383,10 @@ private struct StoppedDeviceControls: View {
                 switch selectedSection {
                 case 1:
                     Form {
+                        Section("Device setup hotspot") {
+                            Text("Start this device to enter the hotspot password shown on its display.")
+                                .foregroundStyle(.secondary)
+                        }
                         Section("Mode") {
                             NetworkModePicker(avd: avd)
                             WifiEnvRow(avd: avd)
