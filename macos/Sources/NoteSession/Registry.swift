@@ -9,6 +9,18 @@ public struct AvdRecord: Identifiable, Equatable, Sendable {
     public var network: String = "disabled"
     /// Dotenv file whose WIFI_SSID / WIFI_PASSWORD the virtual AP uses (`config.json` `wifi_env`).
     public var wifiEnv: String? = nil
+    /// Whether `http://10.0.2.15/` is pinned on or off (`config.json` `station_address`);
+    /// nil follows the mode (on for setup).
+    public var stationAddress: Bool? = nil
+
+    /// What note-emu will do at start: never without a network, else the pin or the mode's default.
+    public var wantsStationAddress: Bool {
+        switch network {
+        case "setup": return stationAddress ?? true
+        case "user": return stationAddress ?? false
+        default: return false
+        }
+    }
 }
 
 public struct InstanceRecord: Identifiable, Equatable, Sendable {
@@ -43,7 +55,8 @@ public enum DataHome {
                   let profile = object["profile"] as? String
             else { return nil }
             return AvdRecord(id: id, name: name, profile: profile, network: object["network"] as? String ?? "disabled",
-                             wifiEnv: object["wifi_env"] as? String)
+                             wifiEnv: object["wifi_env"] as? String,
+                             stationAddress: object["station_address"] as? Bool)
         }
         .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }

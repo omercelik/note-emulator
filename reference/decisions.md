@@ -140,6 +140,10 @@ In Setup networking for a NOTE4C, `note-emu` now takes a second lease from the h
 its own lease with the ADR-010 rules (conflict checks, journal, reconcile, runtime-driven close).
 The station lease is optional: a Mac network or VPN on `10.0.2.0` refuses only that lease, and
 setup stays available. Only one running device can hold each address. The helper reports a lease
-protocol version (`note-net-helper check`); the app reinstalls it, with an administrator prompt,
-only when the installed helper's protocol is older than the bundled one.
+protocol version (`note-net-helper check`). Controls ▸ Network shows whether it is installed and
+current, and its Install/Update button is the only place the administrator prompt appears. A
+device whose helper is missing or outdated still starts: `note-emu` falls back to the loopback
+address and reports `helper-unavailable` in `network.info` `permission`. The station address is a
+per-device setting (`station_address` in `config.json`, `ndb avd station-address`), on by
+default with the setup address.
 

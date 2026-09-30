@@ -13,6 +13,7 @@ import UniformTypeIdentifiers
 /// - `anim`: one device for `NOTE_MEDIA_SECONDS`, as an animated PNG (keeps the transparent
 ///   corners, so it reads on light and dark pages); unchanged frames are merged.
 /// - `manager` / `controls`: the manager window, or the Controls window of `NOTE_MEDIA_SOCK`.
+/// - `network`: Controls ▸ Network of the running `NOTE_MEDIA_SOCK` (AVD `NOTE_MEDIA_AVD`).
 /// Output: `NOTE_MEDIA_OUT`. Scale: `NOTE_MEDIA_SCALE` (device points to pixels).
 @MainActor
 @Suite(.serialized) struct ReadmeMediaTests {
@@ -52,7 +53,16 @@ import UniformTypeIdentifiers
             ManagerModel.shared.reload()
             let view = DeviceControlsView(sock: sock)
             // Let the model connect and poll once so the tab shows live values.
-            let host = hostingWindow(view, size: CGSize(width: 620, height: 560))
+            let height = Double(env["NOTE_MEDIA_HEIGHT"] ?? "") ?? 560
+            let host = hostingWindow(view, size: CGSize(width: 620, height: height))
+            try await Task.sleep(for: .seconds(3))
+            try writePNG(try cache(host), to: url)
+        case "network":
+            // Controls ▸ Network of a running device (`NOTE_MEDIA_SOCK`, AVD `NOTE_MEDIA_AVD`).
+            ManagerModel.shared.reload()
+            let model = try await attach(env["NOTE_MEDIA_SOCK"])
+            let view = NetworkPanel(avd: try #require(env["NOTE_MEDIA_AVD"]), model: model)
+            let host = hostingWindow(view, size: CGSize(width: 620, height: Double(env["NOTE_MEDIA_HEIGHT"] ?? "") ?? 900))
             try await Task.sleep(for: .seconds(3))
             try writePNG(try cache(host), to: url)
         default:

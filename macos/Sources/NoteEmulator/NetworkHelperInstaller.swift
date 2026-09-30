@@ -1,6 +1,11 @@
 import Foundation
 import Darwin
 
+/// Whether the root helper that puts a device's own addresses on this Mac is ready.
+enum NetworkHelperState: Equatable {
+    case checking, installed, missing, outdated
+}
+
 enum NetworkHelperInstaller {
     static var socketPath: String { "/var/run/note-emulator-\(getuid()).sock" }
 
@@ -27,6 +32,15 @@ enum NetworkHelperInstaller {
         return process.terminationStatus != 3
     }
 
+    /// The helper's state, checked off the main thread (it asks the running helper).
+    static func state() async -> NetworkHelperState {
+        guard isAvailable else { return .missing }
+        return await Task.detached { isCurrent ? NetworkHelperState.installed : .outdated }.value
+    }
+
+    /// Shown in macOS's administrator window, so the password request explains itself.
+    static let prompt = "NOTE Emulator wants to install its network helper. It lets the addresses a device shows on its screen, such as 192.168.4.1 and 10.0.2.15, open in your browser on this Mac."
+
     /// macOS presents its standard administrator authentication window. The app never reads a
     /// password; only the bundled installer and the numeric UID are passed to the privileged shell.
     static func install() async -> String? {
@@ -39,7 +53,7 @@ enum NetworkHelperInstaller {
         let command = "/bin/sh \(quotedPath) install-root \(uid)"
         let appleScriptCommand = command.replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
-        let source = "do shell script \"\(appleScriptCommand)\" with administrator privileges"
+        let source = "do shell script \"\(appleScriptCommand)\" with prompt \"\(prompt)\" with administrator privileges"
         return await Task.detached {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")

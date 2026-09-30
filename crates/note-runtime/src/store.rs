@@ -34,6 +34,21 @@ pub struct AvdConfig {
     /// firmware with compiled-in home Wi-Fi joins it. Only the path is stored here.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wifi_env: Option<String>,
+    /// Open the guest's station address `http://10.0.2.15/` on this Mac through the helper.
+    /// `None` follows the network mode: on for `setup`, off otherwise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub station_address: Option<bool>,
+}
+
+impl AvdConfig {
+    /// Whether `10.0.2.15` is requested at start. Never in `disabled` (no network) or `shared`.
+    pub fn wants_station_address(&self) -> bool {
+        match self.network.as_deref() {
+            Some("setup") => self.station_address.unwrap_or(true),
+            Some("user") => self.station_address.unwrap_or(false),
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -80,7 +95,7 @@ impl Store {
         let config = AvdConfig {
             id: id.clone(), name: name.into(), profile: profile.into(),
             source: source.display().to_string(), sha256: hex(&sha256(image)),
-            network: None, legacy_battery: None, wifi_env: None,
+            network: None, legacy_battery: None, wifi_env: None, station_address: None,
         };
         write_json(&dir.join("config.json"), &config)?;
         File::create(dir.join("lock")).map_err(|e| Error::io("create lock", e))?;
@@ -186,6 +201,14 @@ impl Store {
         }
         let mut config = self.config(id)?;
         config.network = (mode != "disabled").then(|| mode.to_string());
+        self.set_config(&config)?;
+        Ok(config)
+    }
+
+    /// `Some(true|false)` pins the station address; `None` goes back to following the mode.
+    pub fn set_station_address(&self, id: &str, value: Option<bool>) -> Result<AvdConfig> {
+        let mut config = self.config(id)?;
+        config.station_address = value;
         self.set_config(&config)?;
         Ok(config)
     }
@@ -340,6 +363,29 @@ mod list_tests {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn the_station_address_follows_the_mode_unless_pinned() {
+        let mut config = AvdConfig {
+            id: "a".into(), name: "a".into(), profile: "note4c".into(), source: String::new(), sha256: String::new(),
+            network: None, legacy_battery: None, wifi_env: None, station_address: None,
+        };
+        assert!(!config.wants_station_address(), "no network, no address");
+        config.network = Some("setup".into());
+        assert!(config.wants_station_address(), "on by default with the setup address");
+        config.network = Some("user".into());
+        assert!(!config.wants_station_address(), "off by default with a local address");
+        config.station_address = Some(true);
+        assert!(config.wants_station_address(), "pinned on");
+        config.network = Some("setup".into());
+        config.station_address = Some(false);
+        assert!(!config.wants_station_address(), "pinned off");
+        config.network = None;
+        config.station_address = Some(true);
+        assert!(!config.wants_station_address(), "never without a network");
+        let old: AvdConfig = serde_json::from_str(r#"{"id":"a","name":"a","profile":"note4c","source":"","sha256":""}"#).unwrap();
+        assert_eq!(old.station_address, None);
+    }
     use super::*;
 
     fn scratch() -> PathBuf {

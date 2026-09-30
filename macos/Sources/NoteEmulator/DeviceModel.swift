@@ -46,6 +46,10 @@ final class DeviceModel {
     var networkConfigured = "disabled"
     var networkActive = "disabled"
     var browserURL = ""
+    /// Host addresses the running device can be opened at (`192.168.4.1:80`, `127.0.0.1:8080`, …).
+    var bindings: [String] = []
+    /// `network.info` `permission`; `helper-unavailable: …` when this run fell back to a local address.
+    var networkPermission = ""
     var restartRequired = false
     var lastError = ""
     var setupHotspotPassword = "" {
@@ -611,6 +615,8 @@ final class DeviceModel {
             networkConfigured = jsonValue(object, "configured")
             networkActive = jsonValue(object, "active")
             browserURL = jsonValue(object, "browser_url")
+            bindings = object["bindings"] as? [String] ?? []
+            networkPermission = jsonValue(object, "permission")
             restartRequired = jsonBool(object, "restart_required")
         }
         if let reply = try? await call([("method", .string("battery.get"))]) {

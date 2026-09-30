@@ -222,7 +222,6 @@ final class ManagerModel {
     /// starts the firmware from reset.
     func start(avd: String, quickBoot: Bool = true) async -> String? {
         if let existing = instance(for: avd) { return existing.sock }
-        let setupAddress = NetworkLaunchSettings.shared.mode(for: avd) == "setup"
         guard let binary = DataHome.noteEmuBinary(cwd: URL(fileURLWithPath: FileManager.default.currentDirectoryPath)) else {
             message = "note-emu was not found. Build it, or set NOTE_EMU_BIN."
             return nil
@@ -230,22 +229,10 @@ final class ManagerModel {
         launching = avd
         defer { launching = "" }
         message = ""
-        if setupAddress && (!NetworkHelperInstaller.isAvailable || !NetworkHelperInstaller.isCurrent) {
-            if let error = await NetworkHelperInstaller.install() {
-                message = error
-                return nil
-            }
-        }
-        var result = await launch(binary: binary, avd: avd, quickBoot: quickBoot)
-        if setupAddress && result == nil && (message.contains("AuthorizationCancelled") ||
-            message.contains("AuthorizationRequired") || message.contains("HelperUnavailable")) {
-            if let error = await NetworkHelperInstaller.install() {
-                message = error
-                return nil
-            }
-            message = ""
-            result = await launch(binary: binary, avd: avd, quickBoot: quickBoot)
-        }
+        // A device that wants the helper's addresses starts even without the helper: note-emu
+        // falls back to a local address. The administrator prompt is only ever asked for from
+        // Controls ▸ Network, where the user can see what it is for.
+        let result = await launch(binary: binary, avd: avd, quickBoot: quickBoot)
         return result
     }
 

@@ -138,6 +138,9 @@ enum AvdAction {
     Delete { id: String },
     /// Show or set the network mode the AVD starts with: disabled, user, setup, shared.
     Network { id: String, mode: Option<String> },
+    /// Show or set whether http://10.0.2.15/ (the station address) opens on this Mac: on, off,
+    /// or default (on in setup mode). Needs the network helper.
+    StationAddress { id: String, value: Option<String> },
     /// Show or set the dotenv file (mode 0600) whose WIFI_SSID / WIFI_PASSWORD the virtual AP uses.
     Wifi {
         id: String,
@@ -280,6 +283,22 @@ fn run(cli: &Cli) -> Result<(), Error> {
                 finish(true, json!({ "ok": true, "id": id, "network": mode }));
             } else {
                 println!("{mode}");
+            }
+        }
+        Command::Avd { action: AvdAction::StationAddress { id, value } } => {
+            let store = Store::new(paths::data_home());
+            let config = match value.as_deref() {
+                None => store.config(id)?,
+                Some("on") => store.set_station_address(id, Some(true))?,
+                Some("off") => store.set_station_address(id, Some(false))?,
+                Some("default") => store.set_station_address(id, None)?,
+                Some(other) => return Err(Error::BadRequest(format!("station address must be on, off or default, not {other:?}"))),
+            };
+            let on = config.wants_station_address();
+            if cli.json {
+                finish(true, json!({ "ok": true, "id": id, "station_address": on, "pinned": config.station_address }));
+            } else {
+                println!("{}", if on { "on" } else { "off" });
             }
         }
         Command::Avd { action: AvdAction::Wifi { id, env, clear } } => {

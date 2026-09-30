@@ -83,6 +83,10 @@ struct Args {
     /// Lease `http://192.168.4.1/` from `note-net-helper` and forward it to guest port 80.
     #[arg(long)]
     setup_address: bool,
+    /// Also lease `http://10.0.2.15/` (the guest's station address once it joins Wi-Fi) from
+    /// `note-net-helper`, forwarded to the guest station's port 80. Needs `--nat`.
+    #[arg(long)]
+    station_address: bool,
     /// vmnet shared mode. The guest address would be learned from traffic.
     /// Without the entitlement this stays inactive and reports the vmnet status.
     /// Not a port forward. Do not combine with `--forward`, `--softap`, `--nat`,
@@ -406,50 +410,41 @@ fn host_access(nm: &mut NoteMachine, args: &Args) -> Result<(NetworkInfo, Leases
         eprintln!("[note-emu] {}", network.access_scope);
         return Ok((network, Vec::new()));
     }
-    let session = if args.setup_address {
-        let control = PathBuf::from(format!("/tmp/note-emu-{}/helper.sock", std::process::id()));
-        let helper = args.helper_socket.clone().unwrap_or_else(default_socket);
-        let mut lease = Session::acquire(&helper, &control).map_err(|e| {
-            format!("setup address: {e} (is `note-net-helper run` up, and authorized?)")
-        })?;
-        let listener = lease
-            .take_listener()
-            .ok_or_else(|| "setup address: helper granted a lease without a socket".to_string())?;
-        let bound = if args.softap.is_some() {
-            nm.adopt_softap(listener, 80)
-                .map_err(|e| format!("setup address: {e}"))?
-        } else {
-            nm.adopt_forward(listener, 80)
-                .map_err(|e| format!("setup address: {e}"))?
-        };
-        let via = if args.softap.is_some() {
-            "guest SoftAP"
-        } else {
-            "guest station"
-        };
-        eprintln!("[note-emu] setup address http://192.168.4.1/ -> {via} port 80 ({bound})");
-        let mut leases = vec![(lease, bound)];
-        // With the SoftAP on 192.168.4.1, the guest's station server (the address the
-        // firmware shows once it joins Wi-Fi) gets its own lease. Optional: a clash with
-        // this Mac's networks or an outdated helper leaves setup working.
-        if args.softap.is_some() {
-            match station_lease(nm, &helper) {
-                Ok(pair) => leases.push(pair),
-                Err(err) => eprintln!("[note-emu] station address http://10.0.2.15/ unavailable: {err}"),
+    // A helper that is missing, unauthorized or outdated is not fatal: this run falls back to
+    // the loopback forward the `user` mode would use, and `permission` says why. The app asks
+    // for the helper only from Controls ▸ Network, never at start.
+    let mut args = args.clone();
+    let helper = args.helper_socket.clone().unwrap_or_else(default_socket);
+    let mut fallback = None;
+    let mut session = Vec::new();
+    if args.setup_address {
+        match setup_lease(nm, &helper, args.softap.is_some()) {
+            Ok(pair) => session.push(pair),
+            Err(err) => {
+                eprintln!("[note-emu] setup address http://192.168.4.1/ unavailable, using a local address: {err}");
+                args.setup_address = false;
+                if args.softap.is_none() {
+                    args.forwards.push("8080:80".into());
+                }
+                fallback = Some(err);
             }
         }
-        leases
-    } else {
-        Vec::new()
-    };
+    }
+    // The guest's station server (the address the firmware shows once it joins Wi-Fi) is its
+    // own lease. Optional: a clash with this Mac's networks or an outdated helper leaves the
+    // rest working.
+    let mut station = false;
+    if args.station_address {
+        match station_lease(nm, &helper) {
+            Ok(pair) => { session.push(pair); station = true; }
+            Err(err) => eprintln!("[note-emu] station address http://10.0.2.15/ unavailable: {err}"),
+        }
+    }
     let mut bindings = Vec::new();
     let mut browser_url = None;
     if args.setup_address {
         browser_url = Some("http://192.168.4.1/".to_string());
         bindings.push("192.168.4.1:80".to_string());
-        if session.len() > 1 {
-            bindings.push("10.0.2.15:80".to_string());
-        }
     }
     for spec in &args.forwards {
         let forward = parse_forward(spec)?;
@@ -497,6 +492,9 @@ fn host_access(nm: &mut NoteMachine, args: &Args) -> Result<(NetworkInfo, Leases
             bindings.push(bound.to_string());
         }
     }
+    if station {
+        bindings.push("10.0.2.15:80".to_string());
+    }
     let mode = if args.setup_address {
         HostMode::Setup
     } else if args.nat || !args.forwards.is_empty() || args.softap.is_some() {
@@ -505,16 +503,12 @@ fn host_access(nm: &mut NoteMachine, args: &Args) -> Result<(NetworkInfo, Leases
         HostMode::Disabled
     };
     let mut network = NetworkInfo::stopped(mode);
-    network.start(
-        mode,
-        browser_url,
-        bindings,
-        if args.setup_address {
-            "authorized"
-        } else {
-            "not-required"
-        },
-    );
+    let permission = match &fallback {
+        Some(err) => format!("helper-unavailable: {err}"),
+        None if args.setup_address || station => "authorized".to_string(),
+        None => "not-required".to_string(),
+    };
+    network.start(mode, browser_url, bindings, &permission);
     eprintln!(
         "[note-emu] network {}, external access {}, discovery {}",
         network.active.as_str(),
@@ -526,6 +520,24 @@ fn host_access(nm: &mut NoteMachine, args: &Args) -> Result<(NetworkInfo, Leases
         eprintln!("[note-emu] {}", network.access_scope);
     }
     Ok((network, session))
+}
+
+fn setup_lease(nm: &mut NoteMachine, helper: &Path, softap: bool) -> Result<(Session, std::net::SocketAddr), String> {
+    let control = PathBuf::from(format!("/tmp/note-emu-{}/helper.sock", std::process::id()));
+    let mut lease = Session::acquire(helper, &control).map_err(|e| e.to_string())?;
+    let listener = lease.take_listener().ok_or("helper granted a lease without a socket")?;
+    let adopted = if softap { nm.adopt_softap(listener, 80) } else { nm.adopt_forward(listener, 80) };
+    match adopted {
+        Ok(bound) => {
+            let via = if softap { "guest SoftAP" } else { "guest station" };
+            eprintln!("[note-emu] setup address http://192.168.4.1/ -> {via} port 80 ({bound})");
+            Ok((lease, bound))
+        }
+        Err(err) => {
+            let _ = lease.release();
+            Err(err.to_string())
+        }
+    }
 }
 
 fn station_lease(nm: &mut NoteMachine, helper: &Path) -> Result<(Session, std::net::SocketAddr), String> {
@@ -723,16 +735,20 @@ fn with_avd_network(args: &Args, mode: Option<&str>, profile: &str) -> Result<Ar
     if explicit {
         return Ok(args);
     }
+    // Every mode but `disabled` is internet (NAT) plus one way to open the guest's page from this
+    // Mac: `user` a loopback port (the SoftAP page on a NOTE4C, the station's port 80 otherwise),
+    // `setup` the helper's real addresses.
     let softap = profile == "note4c";
     match mode.unwrap_or("disabled") {
         "disabled" => {}
         "user" => {
             args.nat = true;
-            if softap { args.softap = Some(8080); }
+            if softap { args.softap = Some(8080); } else { args.forwards.push("8080:80".into()); }
         }
         "setup" => {
             args.setup_address = true;
-            if softap { args.softap = Some(8080); args.nat = true; }
+            args.nat = true;
+            if softap { args.softap = Some(8080); }
         }
         "shared" => args.shared = true,
         other => return Err(format!("AVD network mode {other:?} is not one of disabled, user, setup, shared")),
@@ -788,6 +804,9 @@ fn run_avd(args: &Args, id: &str) -> Result<ExitCode, String> {
     let held = store.lock(id).map_err(|e| e.to_string())?;
     let config = store.config(id).map_err(|e| e.to_string())?;
     let mut args = with_avd_network(args, config.network.as_deref(), &config.profile)?;
+    if config.wants_station_address() && !args.shared {
+        args.station_address = true;
+    }
     if args.wifi_env.is_none() {
         args.wifi_env = config.wifi_env.as_ref().map(PathBuf::from);
     }
@@ -1575,9 +1594,11 @@ mod avd_network_tests {
         let setup4c = with_avd_network(&parse(&[]), Some("setup"), "note4c").unwrap();
         assert!(setup4c.setup_address && setup4c.nat && setup4c.softap == Some(8080));
         let setup4 = with_avd_network(&parse(&[]), Some("setup"), "note4").unwrap();
-        assert!(setup4.setup_address && !setup4.nat && setup4.softap.is_none());
+        assert!(setup4.setup_address && setup4.nat && setup4.softap.is_none());
         let user = with_avd_network(&parse(&[]), Some("user"), "note4").unwrap();
-        assert!(user.nat && !user.setup_address);
+        assert!(user.nat && !user.setup_address && user.forwards == ["8080:80"]);
+        let user4c = with_avd_network(&parse(&[]), Some("user"), "note4c").unwrap();
+        assert!(user4c.nat && user4c.softap == Some(8080) && user4c.forwards.is_empty());
         let off = with_avd_network(&parse(&[]), None, "note4c").unwrap();
         assert!(!off.nat && !off.setup_address && off.softap.is_none());
         let explicit = with_avd_network(&parse(&["--forward", "8081:80"]), Some("setup"), "note4c").unwrap();

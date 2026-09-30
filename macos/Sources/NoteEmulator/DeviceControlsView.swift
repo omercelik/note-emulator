@@ -97,7 +97,9 @@ struct DeviceControlsContent: View {
 
             Group {
                 switch selectedSection {
-                case 1: NetworkTab(model: model, avd: avd)
+                case 1:
+                    if let avd { NetworkPanel(avd: avd, model: model) }
+                    else { NeedsRunning(text: "This device is not in the device list.") }
                 case 2: AudioTab(model: model)
                 case 3: SnapshotsTab(model: model)
                 case 4: LogTab(model: model)
@@ -162,111 +164,6 @@ private struct PowerTab: View {
     }
 }
 
-private struct NetworkTab: View {
-    let model: DeviceModel
-    @State var avd: String?
-
-    var body: some View {
-        Form {
-            if model.networkActive == "user" || model.networkActive == "setup" {
-                Section("Emulator access point") {
-                    Text("Use this option to access the emulator’s access point. If it needs a password (shown on the device’s screen), enter it below.")
-                        .font(.callout).foregroundStyle(.secondary)
-                    TextField("Password shown on the device (if required)", text: Binding(
-                        get: { model.setupHotspotPassword },
-                        set: { model.setupHotspotPassword = $0 }
-                    ))
-                        .labelsHidden()
-                        .textFieldStyle(.roundedBorder)
-                        .disabled(model.accessPointConnection == .connecting)
-                        .onSubmit { Task { await model.connectAccessPoint() } }
-                    HStack {
-                        Button(model.accessPointConnection == .connecting ? "Connecting…" : "Connect") {
-                            Task { await model.connectAccessPoint() }
-                        }
-                        .disabled(model.accessPointConnection == .connecting)
-                        if model.accessPointConnection == .connecting { ProgressView().controlSize(.small) }
-                        if model.accessPointConnection == .connected {
-                            Text("Connected").foregroundStyle(.green)
-                            Button("Open Setup Page") {
-                                if let url = URL(string: model.browserURL) { NSWorkspace.shared.open(url) }
-                            }
-                        }
-                    }
-                    if case .failed(let message) = model.accessPointConnection {
-                        Text(message).font(.caption).foregroundStyle(.red)
-                    }
-                }
-            }
-            Section("Mode") {
-                LabeledContent("Active", value: model.networkActive)
-                if let avd {
-                    NetworkModePicker(avd: avd, model: model)
-                    WifiEnvRow(avd: avd, running: true)
-                    Text("The selected mode is saved with the device and applies when it next starts. macOS asks for administrator access if setup address needs the network helper.")
-                        .font(.callout).foregroundStyle(.secondary)
-                }
-                if model.restartRequired {
-                    Text("Restart the device to apply \(model.networkConfigured).").font(.caption).foregroundStyle(.orange)
-                }
-            }
-            Section("Browser access") {
-                if model.browserURL.isEmpty {
-                    Text("No address from the Mac. Start the device with a forward or the setup address.").foregroundStyle(.secondary)
-                } else {
-                    LabeledContent("URL") { Text(model.browserURL).textSelection(.enabled) }
-                    HStack {
-                        Button("Copy") {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(model.browserURL, forType: .string)
-                        }
-                        Button("Open in Browser") { if let url = URL(string: model.browserURL) { NSWorkspace.shared.open(url) } }
-                    }
-                }
-            }
-        }
-        .formStyle(.grouped)
-        .task {
-            // Read the registry once, not on every redraw.
-            if avd == nil { avd = DataHome.listInstances(DataHome.url()).first { $0.sock == model.socketPath }?.avd }
-        }
-    }
-}
-
-/// Chooses the mode saved in the AVD's config. With a running `model`, the runtime is told too,
-/// so it reports that a restart is needed.
-private struct NetworkModePicker: View {
-    let avd: String
-    var model: DeviceModel? = nil
-    @State private var settings = NetworkLaunchSettings.shared
-    @State private var showRestartAlert = false
-
-    var body: some View {
-        Picker("Network mode at start", selection: Binding(
-            get: { settings.mode(for: avd) },
-            set: { mode in
-                guard settings.mode(for: avd) != mode else { return }
-                Task {
-                    await settings.setMode(mode, for: avd)
-                    guard settings.lastError.isEmpty, let model else { return }
-                    await model.configureNetwork(mode)
-                    showRestartAlert = true
-                }
-            }
-        )) {
-            ForEach(NetworkLaunchSettings.modes, id: \.tag) { Text($0.label).tag($0.tag) }
-        }
-        .alert("Restart needed", isPresented: $showRestartAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("The network change will take effect after you stop this device and start it again.")
-        }
-        if !settings.lastError.isEmpty {
-            Text(settings.lastError).font(.caption).foregroundStyle(.red)
-        }
-    }
-}
-
 /// The five sections, the same whether the device is running or stopped.
 private struct ControlsSectionPicker: View {
     @Binding var selection: Int
@@ -286,8 +183,8 @@ private struct ControlsSectionPicker: View {
     }
 }
 
-/// Credentials of the access point simulated for firmware joining a Wi-Fi network.
-private struct WifiEnvRow: View {
+/// The simulated Wi-Fi network the device joins: its name and password.
+struct WifiEnvRow: View {
     let avd: String
     var running = false
     @State private var ssid = "esp32sim"
@@ -297,12 +194,12 @@ private struct WifiEnvRow: View {
     private var path: String? { manager.avds.first { $0.id == avd }?.wifiEnv }
 
     var body: some View {
-        if path == nil {
-            Text("Default Wi-Fi: esp32sim · WPA2 password: 12345678")
-                .font(.callout).textSelection(.enabled)
-        }
-        DisclosureGroup("Simulated Wi-Fi network") {
-            Text("For firmware connecting to Wi-Fi. The device's setup hotspot password goes in Emulator access point above.")
+        LabeledContent("Wi-Fi name", value: ssid)
+        LabeledContent("Wi-Fi password", value: path == nil ? password : "Saved")
+        Text("Choose this network in the device's own Wi-Fi setup.")
+            .font(.caption).foregroundStyle(.secondary)
+        DisclosureGroup("Change Wi-Fi name or password") {
+            Text("Match your home Wi-Fi if the firmware has it built in. Otherwise the defaults are fine.")
                 .font(.caption).foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 6) {
                 Text("Wi-Fi name (SSID)")
@@ -394,20 +291,7 @@ private struct StoppedDeviceControls: View {
             ControlsSectionPicker(selection: $selectedSection)
             Group {
                 switch selectedSection {
-                case 1:
-                    Form {
-                        Section("Emulator access point") {
-                            Text("Start this device to enter the hotspot password shown on its display.")
-                                .foregroundStyle(.secondary)
-                        }
-                        Section("Mode") {
-                            NetworkModePicker(avd: avd)
-                            WifiEnvRow(avd: avd)
-                            Text("This mode applies when the device starts. User forwards a loopback port; setup address makes 192.168.4.1 available from this Mac; shared needs the vmnet entitlement. macOS asks for administrator access only if the network helper needs it.")
-                                .font(.callout).foregroundStyle(.secondary)
-                        }
-                    }
-                    .formStyle(.grouped)
+                case 1: NetworkPanel(avd: avd)
                 case 3: StoppedSnapshots(avd: avd)
                 case 2: NeedsRunning(text: "Speaker, microphone, screenshots and recording work while the device runs.")
                 case 4: NeedsRunning(text: "The log streams from the running device.")

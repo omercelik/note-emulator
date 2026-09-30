@@ -22,7 +22,7 @@ demo or Add NOTE4C emini Home, then Open. The ROM and both demo firmwares are in
 Add Bundled Device in the toolbar lets you add either later.
 
 The NOTE4C sample is [emini Home v0.6.2](https://github.com/fiedoruk/emini-home/releases/tag/v0.6.2),
-an English-first weather, headlines, and notes app. Setup networking is enabled for this sample; macOS may ask to install the network helper.
+an English-first weather, headlines, and notes app. It opens at the addresses it shows on its screen, which needs the network helper: install it from Controls → Network (macOS asks once for an administrator password). Until then it uses a local address.
 On first boot, enter the hotspot password shown on its screen in Controls → Network → Emulator
 access point at the top of the Network tab. It is visible; click Connect to apply it and check that the setup page responds. Open the browser URL there and pair with the code on the screen. The password
 must be entered again after the device stops. Once emini joins Wi-Fi it shows its own address,
@@ -76,10 +76,10 @@ settings and saved state, kept under `~/Library/Application Support/NOTE Emulato
 - **Wi-Fi and internet:** a virtual access point (its name and password can match your home
   network), DHCP/DNS, NAT with TLS, and the firmware's own SoftAP setup pages from a browser on
   this Mac (`http://127.0.0.1:8080/`, or the real `http://192.168.4.1/` through a small root
-  helper that the app installs the first time you choose that network mode). With that helper,
-  the address a NOTE4C shows once it is on Wi-Fi, `http://10.0.2.15/`, opens too. The helper
-  asks for an administrator password when it is installed, and again only when an update
-  changes what it does.
+  helper you install from Controls → Network). With that helper, the address a device shows
+  once it is on Wi-Fi, `http://10.0.2.15/`, opens too (a switch in the same place). Installing
+  asks for an administrator password once, and again only when an update changes the helper;
+  starting a device never asks.
 - **Audio:** the speaker plays on the Mac; the Mac's microphone (or a WAV file) feeds the
   device's microphone.
 - **Power and board:** battery level, USB cable, RTC, light and deep sleep, the power latch.

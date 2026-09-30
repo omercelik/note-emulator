@@ -12,6 +12,7 @@ final class NetworkLaunchSettings {
         ("disabled", "Off"), ("user", "User (forwards)"), ("setup", "Setup address"), ("shared", "Shared"),
     ]
     private var modes: [String: String] = [:]
+    private var station: [String: Bool] = [:]
     var lastError = ""
 
     func mode(for avd: String) -> String {
@@ -25,6 +26,7 @@ final class NetworkLaunchSettings {
     func setMode(_ next: String, for avd: String) async {
         let previous = mode(for: avd)
         modes[avd] = next
+        station[avd] = nil
         let result = await Ndb.run(["avd", "network", avd, next])
         switch result {
         case .success: lastError = ""
@@ -34,8 +36,28 @@ final class NetworkLaunchSettings {
         }
     }
 
+    /// Whether `http://10.0.2.15/` opens on this Mac when the device starts.
+    func stationAddress(for avd: String) -> Bool {
+        if let on = station[avd] { return on }
+        guard var record = DataHome.listAvds(DataHome.url()).first(where: { $0.id == avd }) else { return false }
+        record.network = mode(for: avd)
+        return record.wantsStationAddress
+    }
+
+    /// Pins it on or off through `ndb avd station-address`.
+    func setStationAddress(_ on: Bool, for avd: String) async {
+        let previous = stationAddress(for: avd)
+        station[avd] = on
+        switch await Ndb.run(["avd", "station-address", avd, on ? "on" : "off"]) {
+        case .success: lastError = ""
+        case .failure(let error):
+            station[avd] = previous
+            lastError = error.message
+        }
+    }
+
     /// Drop cached modes (the config may have changed outside the app).
-    func invalidate() { modes.removeAll() }
+    func invalidate() { modes.removeAll(); station.removeAll() }
 }
 
 struct NdbError: Error { let message: String }
