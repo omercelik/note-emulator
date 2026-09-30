@@ -25,7 +25,8 @@ The NOTE4C sample is [emini Home v0.6.2](https://github.com/fiedoruk/emini-home/
 an English-first weather, headlines, and notes app. Setup networking is enabled for this sample; macOS may ask to install the network helper.
 On first boot, enter the hotspot password shown on its screen in Controls → Network → Emulator
 access point at the top of the Network tab. It is visible; click Connect to apply it and check that the setup page responds. Open the browser URL there and pair with the code on the screen. The password
-must be entered again after the device stops. This is community firmware, not a factory image.
+must be entered again after the device stops. Once emini joins Wi-Fi it shows its own address,
+`http://10.0.2.15/`; that opens on this Mac too. This is community firmware, not a factory image.
 
 The default simulated Wi-Fi is **esp32sim**, protected with WPA2 password **12345678**.
 Use these credentials in the firmware's Wi-Fi setup page.
@@ -75,7 +76,10 @@ settings and saved state, kept under `~/Library/Application Support/NOTE Emulato
 - **Wi-Fi and internet:** a virtual access point (its name and password can match your home
   network), DHCP/DNS, NAT with TLS, and the firmware's own SoftAP setup pages from a browser on
   this Mac (`http://127.0.0.1:8080/`, or the real `http://192.168.4.1/` through a small root
-  helper that the app installs the first time you choose that network mode).
+  helper that the app installs the first time you choose that network mode). With that helper,
+  the address a NOTE4C shows once it is on Wi-Fi, `http://10.0.2.15/`, opens too. The helper
+  asks for an administrator password when it is installed, and again only when an update
+  changes what it does.
 - **Audio:** the speaker plays on the Mac; the Mac's microphone (or a WAV file) feeds the
   device's microphone.
 - **Power and board:** battery level, USB cable, RTC, light and deep sleep, the power latch.
@@ -179,7 +183,7 @@ skip when those are absent.
 |---|---|
 | `engine/esp32sim/` | vendored engine at `4ab7e90`; every change is in `PATCHES.md` with its test |
 | `crates/` | `note-core` (profiles, ROM store), `note-protocol` (wire format), `note-machine` (board, panels, snapshots), `note-runtime` (AVD store, protocol server, logs, network) |
-| `apps/` | `note-emu` (one device), `ndb` (CLI), `note-net-helper` (root helper for `192.168.4.1`) |
+| `apps/` | `note-emu` (one device), `ndb` (CLI), `note-net-helper` (root helper for `192.168.4.1` and `10.0.2.15`) |
 | `macos/` | the SwiftUI app and the Swift protocol client |
 | `Profiles/` | `note4c.json`, `note4.json` and the vector shell `skins/note-shell.svg` |
 | `reference/` | board wiring, design decisions, firmware compatibility report |

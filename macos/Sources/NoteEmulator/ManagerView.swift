@@ -230,7 +230,7 @@ final class ManagerModel {
         launching = avd
         defer { launching = "" }
         message = ""
-        if setupAddress && !NetworkHelperInstaller.isAvailable {
+        if setupAddress && (!NetworkHelperInstaller.isAvailable || !NetworkHelperInstaller.isCurrent) {
             if let error = await NetworkHelperInstaller.install() {
                 message = error
                 return nil

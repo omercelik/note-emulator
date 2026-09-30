@@ -1,8 +1,8 @@
 //! `note-net-helper` — the privileged half of the setup address (decision D10).
 //!
 //! `authorize` records consent. `run` is the lease server: it is the only
-//! command that changes interfaces, and only by adding or removing
-//! `192.168.4.1/32` on `lo0` and binding port 80 there. Killing the process
+//! command that changes interfaces, and only by adding or removing its
+//! `/32` aliases (`192.168.4.1`, `10.0.2.15`) on `lo0` and binding port 80 there. Killing the process
 //! leaves the journal for the next start to reconcile; it does not remove an
 //! alias a live `note-emu` may still be listening on.
 
@@ -44,6 +44,12 @@ enum Command {
         #[arg(long)]
         state_dir: Option<PathBuf>,
     },
+    /// Exit 0 when the helper at `--socket` speaks this binary's protocol (or newer), 3 when
+    /// it is older and needs reinstalling, 4 when nothing answers. Changes nothing.
+    Check {
+        #[arg(long)]
+        socket: Option<PathBuf>,
+    },
 }
 
 fn main() -> ExitCode {
@@ -58,6 +64,15 @@ fn main() -> ExitCode {
 
 fn run() -> Result<(), String> {
     match Cli::parse().command {
+        Command::Check { socket } => {
+            let socket = socket.unwrap_or_else(default_socket);
+            let code = match note_net_helper::installed_protocol(&socket) {
+                Some(v) if v >= note_net_helper::PROTOCOL => { println!("current (protocol {v})"); 0 }
+                Some(v) => { println!("outdated (protocol {v}, this build speaks {})", note_net_helper::PROTOCOL); 3 }
+                None => { println!("no helper at {}", socket.display()); 4 }
+            };
+            std::process::exit(code);
+        }
         Command::Authorize { state_dir: dir } => {
             let path = dir.unwrap_or_else(state_dir).join("auth.json");
             write_auth(&path, "authorized")?;

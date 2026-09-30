@@ -1,22 +1,21 @@
 //! What the helper is allowed to do to the host: read addresses and routes,
-//! add or remove only the owned `lo0` alias, and bind the setup port.
+//! add or remove only its own `/32` `lo0` aliases (the [`Endpoint`] addresses),
+//! and bind port 80 on them.
 //! Tests use [`FakePlatform`]; the binary uses [`SystemPlatform`].
 
 use std::net::{Ipv4Addr, TcpListener};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::book::{Addr, Auth, HostView, Route};
-#[cfg(test)]
-use crate::book::SETUP_IP;
+use crate::book::{Addr, Auth, Endpoint, HostView, Route};
 #[cfg(test)]
 use std::collections::HashSet;
 
 pub trait Platform: Send {
     fn view(&self) -> HostView;
-    fn add_alias(&mut self) -> Result<(), String>;
-    fn remove_alias(&mut self) -> Result<(), String>;
-    fn bind_setup(&mut self) -> Result<TcpListener, String>;
+    fn add_alias(&mut self, endpoint: Endpoint) -> Result<(), String>;
+    fn remove_alias(&mut self, endpoint: Endpoint) -> Result<(), String>;
+    fn bind(&mut self, endpoint: Endpoint) -> Result<TcpListener, String>;
     fn pid_alive(&self, pid: u32) -> bool;
 }
 
@@ -26,7 +25,9 @@ pub struct FakePlatform {
     pub addrs: Vec<Addr>,
     pub routes: Vec<Route>,
     pub foreign_listener: bool,
+    /// The setup alias (`192.168.4.1`); `station_alias` is `10.0.2.15`.
     pub alias: bool,
+    pub station_alias: bool,
     pub bind_error: Option<String>,
     pub alive: HashSet<u32>,
     pub alias_adds: u32,
@@ -40,7 +41,17 @@ impl FakePlatform {
         alive.insert(std::process::id());
         FakePlatform {
             auth: Auth::Authorized, addrs: Vec::new(), routes: Vec::new(), foreign_listener: false,
-            alias: false, bind_error: None, alive, alias_adds: 0, alias_removes: 0,
+            alias: false, station_alias: false, bind_error: None, alive, alias_adds: 0, alias_removes: 0,
+        }
+    }
+}
+
+#[cfg(test)]
+impl FakePlatform {
+    fn alias_mut(&mut self, endpoint: Endpoint) -> &mut bool {
+        match endpoint {
+            Endpoint::Setup => &mut self.alias,
+            Endpoint::Station => &mut self.station_alias,
         }
     }
 }
@@ -49,30 +60,32 @@ impl FakePlatform {
 impl Platform for FakePlatform {
     fn view(&self) -> HostView {
         let mut addrs = self.addrs.clone();
-        if self.alias && !addrs.iter().any(|a| a.ip == SETUP_IP) {
-            addrs.push(Addr { ip: SETUP_IP, prefix: 32, iface: "lo0".into() });
+        for (on, endpoint) in [(self.alias, Endpoint::Setup), (self.station_alias, Endpoint::Station)] {
+            if on && !addrs.iter().any(|a| a.ip == endpoint.ip()) {
+                addrs.push(Addr { ip: endpoint.ip(), prefix: 32, iface: "lo0".into() });
+            }
         }
         HostView { auth: self.auth, addrs, routes: self.routes.clone(), foreign_listener: self.foreign_listener }
     }
 
-    fn add_alias(&mut self) -> Result<(), String> {
-        self.alias = true;
+    fn add_alias(&mut self, endpoint: Endpoint) -> Result<(), String> {
+        *self.alias_mut(endpoint) = true;
         self.alias_adds += 1;
         Ok(())
     }
 
-    fn remove_alias(&mut self) -> Result<(), String> {
-        self.alias = false;
+    fn remove_alias(&mut self, endpoint: Endpoint) -> Result<(), String> {
+        *self.alias_mut(endpoint) = false;
         self.alias_removes += 1;
         Ok(())
     }
 
-    fn bind_setup(&mut self) -> Result<TcpListener, String> {
+    fn bind(&mut self, _endpoint: Endpoint) -> Result<TcpListener, String> {
         if let Some(err) = &self.bind_error {
             return Err(err.clone());
         }
-        // The real helper binds 192.168.4.1:80. Tests get a loopback fd so the
-        // pass itself can be proven without root; the lease still names the setup URL.
+        // The real helper binds port 80 on the endpoint. Tests get a loopback fd so the
+        // pass itself can be proven without root; the lease still names the endpoint.
         TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).map_err(|e| e.to_string())
     }
 
@@ -105,16 +118,16 @@ impl Platform for SystemPlatform {
         HostView { auth: self.auth(), addrs: interface_addrs(), routes: system_routes(), foreign_listener: false }
     }
 
-    fn add_alias(&mut self) -> Result<(), String> {
-        run("ifconfig", &["lo0", "alias", "192.168.4.1", "255.255.255.255"])
+    fn add_alias(&mut self, endpoint: Endpoint) -> Result<(), String> {
+        run("ifconfig", &["lo0", "alias", &endpoint.ip_text(), "255.255.255.255"])
     }
 
-    fn remove_alias(&mut self) -> Result<(), String> {
-        run("ifconfig", &["lo0", "-alias", "192.168.4.1"])
+    fn remove_alias(&mut self, endpoint: Endpoint) -> Result<(), String> {
+        run("ifconfig", &["lo0", "-alias", &endpoint.ip_text()])
     }
 
-    fn bind_setup(&mut self) -> Result<TcpListener, String> {
-        TcpListener::bind((Ipv4Addr::new(192, 168, 4, 1), 80)).map_err(|e| e.to_string())
+    fn bind(&mut self, endpoint: Endpoint) -> Result<TcpListener, String> {
+        TcpListener::bind((Ipv4Addr::from(endpoint.ip()), 80)).map_err(|e| e.to_string())
     }
 
     fn pid_alive(&self, pid: u32) -> bool {

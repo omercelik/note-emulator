@@ -16,7 +16,7 @@ use clap::Parser;
 use note_core::flash::{FlashImage, Layout};
 use note_core::{paths, profile, rom, DisplayFormat, Profile};
 use note_machine::{Guest, NoteMachine, RadioConfig, SliceEnd, CPU_HZ};
-use note_net_helper::{default_socket, probe_shared, request_shared, Session, SharedProbe};
+use note_net_helper::{default_socket, probe_shared, request_shared, Endpoint, Session, SharedProbe};
 use note_runtime::{incompatible_shared, parse_forward, shared_failure_permission, FrameCapture, HostMode, Instance, NetworkInfo, OwnedServer, Queued, Store};
 
 #[derive(Parser, Clone)]
@@ -393,7 +393,10 @@ fn flash_fnv(bytes: &[u8]) -> u32 {
     bytes.iter().fold(0x811c9dc5u32, |h, &b| (h ^ b as u32).wrapping_mul(0x0100_0193))
 }
 
-fn host_access(nm: &mut NoteMachine, args: &Args) -> Result<(NetworkInfo, Option<(Session, std::net::SocketAddr)>), String> {
+/// Helper leases this run holds, each with the address its listener was adopted at.
+type Leases = Vec<(Session, std::net::SocketAddr)>;
+
+fn host_access(nm: &mut NoteMachine, args: &Args) -> Result<(NetworkInfo, Leases), String> {
     if args.shared {
         let helper = args.helper_socket.clone().unwrap_or_else(default_socket);
         let permission = shared_permission(&helper, args);
@@ -401,7 +404,7 @@ fn host_access(nm: &mut NoteMachine, args: &Args) -> Result<(NetworkInfo, Option
         network.deny_shared(&permission);
         eprintln!("[note-emu] shared mode inactive: {permission}");
         eprintln!("[note-emu] {}", network.access_scope);
-        return Ok((network, None));
+        return Ok((network, Vec::new()));
     }
     let session = if args.setup_address {
         let control = PathBuf::from(format!("/tmp/note-emu-{}/helper.sock", std::process::id()));
@@ -425,15 +428,28 @@ fn host_access(nm: &mut NoteMachine, args: &Args) -> Result<(NetworkInfo, Option
             "guest station"
         };
         eprintln!("[note-emu] setup address http://192.168.4.1/ -> {via} port 80 ({bound})");
-        Some((lease, bound))
+        let mut leases = vec![(lease, bound)];
+        // With the SoftAP on 192.168.4.1, the guest's station server (the address the
+        // firmware shows once it joins Wi-Fi) gets its own lease. Optional: a clash with
+        // this Mac's networks or an outdated helper leaves setup working.
+        if args.softap.is_some() {
+            match station_lease(nm, &helper) {
+                Ok(pair) => leases.push(pair),
+                Err(err) => eprintln!("[note-emu] station address http://10.0.2.15/ unavailable: {err}"),
+            }
+        }
+        leases
     } else {
-        None
+        Vec::new()
     };
     let mut bindings = Vec::new();
     let mut browser_url = None;
     if args.setup_address {
         browser_url = Some("http://192.168.4.1/".to_string());
         bindings.push("192.168.4.1:80".to_string());
+        if session.len() > 1 {
+            bindings.push("10.0.2.15:80".to_string());
+        }
     }
     for spec in &args.forwards {
         let forward = parse_forward(spec)?;
@@ -510,6 +526,22 @@ fn host_access(nm: &mut NoteMachine, args: &Args) -> Result<(NetworkInfo, Option
         eprintln!("[note-emu] {}", network.access_scope);
     }
     Ok((network, session))
+}
+
+fn station_lease(nm: &mut NoteMachine, helper: &Path) -> Result<(Session, std::net::SocketAddr), String> {
+    let control = PathBuf::from(format!("/tmp/note-emu-{}/station/helper.sock", std::process::id()));
+    let mut lease = Session::acquire_endpoint(helper, &control, Endpoint::Station).map_err(|e| e.to_string())?;
+    let listener = lease.take_listener().ok_or("helper granted a lease without a socket")?;
+    match nm.adopt_forward(listener, 80) {
+        Ok(bound) => {
+            eprintln!("[note-emu] station address http://10.0.2.15/ -> guest station port 80 ({bound})");
+            Ok((lease, bound))
+        }
+        Err(err) => {
+            let _ = lease.release();
+            Err(err.to_string())
+        }
+    }
 }
 
 fn write_png(path: &Path, profile: &Profile, visible: &[u8]) -> std::io::Result<()> {
@@ -888,14 +920,15 @@ fn run_avd(args: &Args, id: &str) -> Result<ExitCode, String> {
             &mut saw_privacy,
             &mut softap_phase,
         );
-        if let Some((lease, bound)) = helper.as_mut() {
+        let beat = Instant::now() >= next_heartbeat;
+        if beat {
+            next_heartbeat = Instant::now() + Duration::from_secs(2);
+        }
+        for (lease, bound) in helper.iter_mut() {
             let _ = lease.poll_control();
-            if Instant::now() >= next_heartbeat {
-                next_heartbeat = Instant::now() + Duration::from_secs(2);
-                if lease.holding() && lease.heartbeat().is_err() {
-                    eprintln!("[note-emu] helper disconnected; closing the setup listener");
-                    host.inst.guest.close_forward(*bound);
-                }
+            if beat && lease.holding() && lease.heartbeat().is_err() {
+                eprintln!("[note-emu] helper disconnected; closing the listener on {bound}");
+                host.inst.guest.close_forward(*bound);
             }
         }
         if !host.inst.is_running() || STOP_SIGNAL.load(std::sync::atomic::Ordering::SeqCst) {
@@ -1017,11 +1050,11 @@ fn run_avd(args: &Args, id: &str) -> Result<ExitCode, String> {
         }
     }
     save_capture(args, &mut capture, host.inst.guest.now_ns(), &host.inst.guest)?;
-    if let Some((lease, bound)) = helper {
+    for (lease, bound) in helper {
         if lease.holding() {
             host.inst.guest.close_forward(bound);
             if let Err(err) = lease.release() {
-                eprintln!("[note-emu] setup address release: {err}");
+                eprintln!("[note-emu] release of {bound}: {err}");
             }
         }
     }
@@ -1325,14 +1358,15 @@ fn run(args: &Args) -> Result<ExitCode, String> {
         if args.realtime {
             pacer.pace((nm.seconds() * 1e9) as u64);
         }
-        if let Some((lease, bound)) = session.as_mut() {
+        let beat = Instant::now() >= next_heartbeat;
+        if beat {
+            next_heartbeat = Instant::now() + Duration::from_secs(2);
+        }
+        for (lease, bound) in session.iter_mut() {
             let _ = lease.poll_control();
-            if Instant::now() >= next_heartbeat {
-                next_heartbeat = Instant::now() + Duration::from_secs(2);
-                if lease.holding() && lease.heartbeat().is_err() {
-                    eprintln!("[note-emu] helper disconnected; closing the setup listener");
-                    nm.close_forward(*bound);
-                }
+            if beat && lease.holding() && lease.heartbeat().is_err() {
+                eprintln!("[note-emu] helper disconnected; closing the listener on {bound}");
+                nm.close_forward(*bound);
             }
         }
     }
@@ -1346,11 +1380,11 @@ fn run(args: &Args) -> Result<ExitCode, String> {
             None => eprintln!("[note-emu] no core dump in flash (no coredump partition, or it is erased)"),
         }
     }
-    if let Some((lease, bound)) = session {
+    for (lease, bound) in session {
         if lease.holding() {
             nm.close_forward(bound);
             if let Err(err) = lease.release() {
-                eprintln!("[note-emu] setup address release: {err}");
+                eprintln!("[note-emu] release of {bound}: {err}");
             }
         }
     }

@@ -1,7 +1,7 @@
 //! Bounded JSON operations. The helper accepts these and nothing that names a
 //! program, a shell, or a path other than the caller's reconcile socket.
 
-use crate::book::Code;
+use crate::book::{Code, Endpoint};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Op {
@@ -10,6 +10,8 @@ pub enum Op {
     Release,
     /// Ask vmnet for a shared interface. Not a TCP listener.
     Shared,
+    /// Which [`crate::PROTOCOL`] this helper speaks. Changes nothing.
+    Version,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -19,6 +21,8 @@ pub struct Request {
     pub nonce: String,
     pub pid: u32,
     pub control: Option<String>,
+    /// Which address a lease is for; absent means the setup address.
+    pub endpoint: Endpoint,
 }
 
 pub fn parse_request(line: &str) -> Result<Request, Code> {
@@ -32,6 +36,7 @@ pub fn parse_request(line: &str) -> Result<Request, Code> {
         "heartbeat" => Op::Heartbeat,
         "release" => Op::Release,
         "shared" => Op::Shared,
+        "version" => Op::Version,
         _ => return Err(Code::BadRequest),
     };
     let instance = obj.get("instance").and_then(|v| v.as_str()).ok_or(Code::BadRequest)?.to_string();
@@ -46,7 +51,11 @@ pub fn parse_request(line: &str) -> Result<Request, Code> {
         None if op == Op::Lease => return Err(Code::BadRequest),
         None => None,
     };
-    Ok(Request { op, instance, nonce, pid: pid as u32, control })
+    let endpoint = match obj.get("endpoint") {
+        None => Endpoint::Setup,
+        Some(v) => v.as_str().and_then(Endpoint::from_name).ok_or(Code::BadRequest)?,
+    };
+    Ok(Request { op, instance, nonce, pid: pid as u32, control, endpoint })
 }
 
 fn is_uuid(s: &str) -> bool {
@@ -85,6 +94,10 @@ mod tests {
         let ok = parse_request(&lease("/tmp/note/helper.sock")).unwrap();
         assert_eq!(ok.op, Op::Lease);
         assert_eq!(ok.pid, 42);
+        assert_eq!(ok.endpoint, Endpoint::Setup);
+        let station = parse_request(&lease("/tmp/note/helper.sock").replace(r#""pid":42"#, r#""pid":42,"endpoint":"station""#)).unwrap();
+        assert_eq!(station.endpoint, Endpoint::Station);
+        assert!(parse_request(&lease("/tmp/note/helper.sock").replace(r#""pid":42"#, r#""pid":42,"endpoint":"10.0.0.1""#)).is_err());
         assert!(parse_request(&lease("/tmp/../etc/helper.sock")).is_err());
         assert!(parse_request(&lease("helper.sock")).is_err());
         let shared = parse_request(

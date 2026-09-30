@@ -132,3 +132,14 @@ only from the data directory: a missing ROM is imported from the bundled copy (`
 found next to the running binary, with no build-time path compiled in). `ndb rom import FILE`
 still accepts another verified copy. An empty device list offers the demo.
 
+## ADR-019 — The helper also leases the station address 10.0.2.15
+Firmware that finishes setup joins the virtual AP and shows its station address, `10.0.2.15`,
+as the way to reach it. That address is private to the emulator, so it did not open on the Mac.
+In Setup networking for a NOTE4C, `note-emu` now takes a second lease from the helper for the
+`10.0.2.15/32` lo0 alias and port 80, forwarded to the guest station's port 80. Each address is
+its own lease with the ADR-010 rules (conflict checks, journal, reconcile, runtime-driven close).
+The station lease is optional: a Mac network or VPN on `10.0.2.0` refuses only that lease, and
+setup stays available. Only one running device can hold each address. The helper reports a lease
+protocol version (`note-net-helper check`); the app reinstalls it, with an administrator prompt,
+only when the installed helper's protocol is older than the bundled one.
+

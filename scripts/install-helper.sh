@@ -49,10 +49,14 @@ if [ "$ACTION" = status ]; then
     exit 0
 fi
 
-# An active runtime holds the listener even if launchd stops the helper.
-if [ "$ACTION" != install ] && lsof -nP -iTCP@192.168.4.1:80 -sTCP:LISTEN 2>/dev/null | tail -n +2 | grep -q .; then
-    echo "stop the emulator using 192.168.4.1:80 before $ACTION" >&2
-    exit 1
+# An active runtime holds the listeners even if launchd stops the helper.
+if [ "$ACTION" != install ]; then
+    for ENDPOINT in 192.168.4.1 10.0.2.15; do
+        if lsof -nP -iTCP@$ENDPOINT:80 -sTCP:LISTEN 2>/dev/null | tail -n +2 | grep -q .; then
+            echo "stop the emulator using $ENDPOINT:80 before $ACTION" >&2
+            exit 1
+        fi
+    done
 fi
 
 if [ "$ACTION" = install ] || [ "$ACTION" = plan ]; then

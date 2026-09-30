@@ -10,6 +10,7 @@ use std::path::Path;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use crate::book::Endpoint;
 use crate::passfd::{read_line, recv_with_fd, send_with_fd};
 
 #[derive(Debug)]
@@ -90,6 +91,28 @@ pub fn request_shared(helper: &Path) -> SharedRefusal {
     }
 }
 
+/// The lease protocol the helper at `helper` speaks, or `None` when nothing answers there.
+/// A helper from before the `version` request refuses it, and counts as protocol 1.
+pub fn installed_protocol(helper: &Path) -> Option<u32> {
+    let sock = UnixStream::connect(helper).ok()?;
+    sock.set_read_timeout(Some(Duration::from_secs(2))).ok()?;
+    sock.set_write_timeout(Some(Duration::from_secs(2))).ok()?;
+    let line = format!(
+        "{{\"op\":\"version\",\"instance\":\"{}\",\"nonce\":\"{}\",\"pid\":{}}}\n",
+        uuid_v4(),
+        hex_nonce(),
+        std::process::id()
+    );
+    let (value, _) = exchange(&sock, &line).ok()?;
+    if value.get("ok").and_then(|v| v.as_bool()) == Some(true) {
+        value.get("protocol").and_then(|v| v.as_u64()).map(|v| v as u32)
+    } else if value.get("error").and_then(|v| v.as_str()) == Some("BadRequest") {
+        Some(1)
+    } else {
+        None
+    }
+}
+
 fn refusal_io(err: HelperError) -> SharedRefusal {
     SharedRefusal { code: err.code, message: err.message, gateway: None, mask: None }
 }
@@ -116,6 +139,11 @@ pub struct Session {
 
 impl Session {
     pub fn acquire(helper: &Path, control: &Path) -> Result<Session, HelperError> {
+        Self::acquire_endpoint(helper, control, Endpoint::Setup)
+    }
+
+    /// Lease one endpoint. Each endpoint needs its own session and its own `control` socket.
+    pub fn acquire_endpoint(helper: &Path, control: &Path, endpoint: Endpoint) -> Result<Session, HelperError> {
         if let Some(parent) = control.parent() {
             fs::create_dir_all(parent).map_err(io_err)?;
         }
@@ -131,9 +159,10 @@ impl Session {
         sock.set_read_timeout(Some(Duration::from_secs(2))).map_err(io_err)?;
         sock.set_write_timeout(Some(Duration::from_secs(2))).map_err(io_err)?;
         let line = format!(
-            "{{\"op\":\"lease\",\"instance\":\"{instance}\",\"nonce\":\"{nonce}\",\"pid\":{},\"control\":\"{}\"}}\n",
+            "{{\"op\":\"lease\",\"instance\":\"{instance}\",\"nonce\":\"{nonce}\",\"pid\":{},\"control\":\"{}\",\"endpoint\":\"{}\"}}\n",
             std::process::id(),
-            control.display()
+            control.display(),
+            endpoint.name()
         );
         let (value, fd) = exchange(&sock, &line)?;
         if value.get("ok").and_then(|v| v.as_bool()) != Some(true) {
@@ -141,7 +170,18 @@ impl Session {
         }
         let fd = fd.ok_or_else(|| HelperError { code: "HelperUnavailable".into(), message: "helper granted a lease without a listening socket".into(), owner: None })?;
         let tcp = unsafe { TcpListener::from_raw_fd(fd) };
-        Ok(Session { sock, listener: Some(tcp), control: listener, instance, nonce, holding: true })
+        let session = Session { sock, listener: Some(tcp), control: listener, instance, nonce, holding: true };
+        // A helper from before endpoints ignores the field and leases the setup address.
+        let want = format!("{}:80", endpoint.ip_text());
+        if value.get("endpoint").and_then(|v| v.as_str()) != Some(want.as_str()) {
+            let _ = session.release();
+            return Err(HelperError {
+                code: "HelperOutdated".into(),
+                message: format!("the installed helper cannot lease {want}; reinstall it from the app"),
+                owner: None,
+            });
+        }
+        Ok(session)
     }
 
     pub fn instance(&self) -> &str {

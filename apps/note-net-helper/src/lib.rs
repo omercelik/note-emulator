@@ -1,7 +1,8 @@
 //! Privileged setup-address helper (decision D10, Spec §8.3–8.5).
 //!
-//! The helper adds a `192.168.4.1/32` loopback alias, binds port 80 on that
-//! address, and passes the listening fd to `note-emu`. It never reads the
+//! The helper adds a `/32` loopback alias, binds port 80 on that address, and
+//! passes the listening fd to `note-emu`: `192.168.4.1` for the setup page, and
+//! `10.0.2.15` for the guest's station web server, each leased on its own. It never reads the
 //! traffic. Leases are reconciled from a journal; a missed heartbeat is not
 //! proof that the socket was released.
 
@@ -13,13 +14,18 @@ mod proto;
 mod server;
 mod vmnet;
 
-pub use book::{code_str, Auth, Code, HostView};
-pub use client::{request_shared, Session, SharedRefusal};
+pub use book::{code_str, Auth, Code, Endpoint, HostView};
+pub use client::{installed_protocol, request_shared, Session, SharedRefusal};
 pub use platform::{write_auth, SystemPlatform};
 pub use server::{serve, Helper};
 pub use vmnet::{probe_shared, SharedProbe};
 
 use std::path::PathBuf;
+
+/// What the lease protocol can do. Raise it only when the helper gains or changes a request,
+/// so an app update reinstalls the root helper (an administrator prompt) only when needed.
+/// 1: the setup address (helpers without the `version` request). 2: the station address.
+pub const PROTOCOL: u32 = 2;
 
 /// Use the installed per-user system socket when present; otherwise use the
 /// development helper's data-home socket (or `/tmp` if too long for `sun_path`).

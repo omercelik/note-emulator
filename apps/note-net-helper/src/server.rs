@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use crate::book::{code_str, Book, Code, Lease, Verdict};
+use crate::book::{code_str, Book, Code, Endpoint, Lease, Verdict};
 use crate::passfd::{read_line, send_with_fd};
 use crate::platform::Platform;
 use crate::proto::{parse_request, Op, Request};
@@ -50,7 +50,7 @@ impl<P: Platform> Helper<P> {
         for lease in leases {
             if !self.platform.pid_alive(lease.pid) {
                 if lease.alias_owned {
-                    let _ = self.platform.remove_alias();
+                    let _ = self.platform.remove_alias(lease.endpoint);
                 }
                 continue;
             }
@@ -62,7 +62,7 @@ impl<P: Platform> Helper<P> {
                 }
                 Ok(false) => {
                     if lease.alias_owned {
-                        let _ = self.platform.remove_alias();
+                        let _ = self.platform.remove_alias(lease.endpoint);
                     }
                 }
                 Err(_) => keep.push(lease), // alive, no answer yet: do not give the endpoint away
@@ -88,7 +88,7 @@ impl<P: Platform> Helper<P> {
         let dead = self.book.reap(|pid| self.platform.pid_alive(pid));
         for lease in dead {
             if lease.alias_owned {
-                let _ = self.platform.remove_alias();
+                let _ = self.platform.remove_alias(lease.endpoint);
             }
         }
     }
@@ -99,18 +99,19 @@ impl<P: Platform> Helper<P> {
             Op::Lease => self.lease(req),
             Op::Heartbeat => {
                 if self.book.heartbeat(&req.instance, &req.nonce) {
-                    Outcome::Reply(ok_json(true))
+                    Outcome::Reply(ok_json(req.endpoint, true))
                 } else {
                     Outcome::Reply(err_json(Code::BadRequest, "unknown lease", None))
                 }
             }
             Op::Shared => self.shared(),
+            Op::Version => Outcome::Reply(format!("{{\"ok\":true,\"protocol\":{}}}\n", crate::PROTOCOL)),
             Op::Release => match self.book.release(&req.instance, &req.nonce) {
                 Ok(lease) => {
                     if lease.alias_owned {
-                        let _ = self.platform.remove_alias();
+                        let _ = self.platform.remove_alias(lease.endpoint);
                     }
-                    Outcome::Reply(ok_json(false))
+                    Outcome::Reply(ok_json(lease.endpoint, false))
                 }
                 Err(code) => Outcome::Reply(err_json(code, "unknown lease", None)),
             },
@@ -148,27 +149,28 @@ impl<P: Platform> Helper<P> {
 
     fn lease(&mut self, req: Request) -> Outcome {
         let control = req.control.clone().unwrap_or_default();
-        match self.book.request(&self.platform.view(), &req.instance) {
+        let endpoint = req.endpoint;
+        match self.book.request(&self.platform.view(), &req.instance, endpoint) {
             Verdict::Deny { code, owner, message } => Outcome::Reply(err_json(code, &message, owner.as_deref())),
-            Verdict::AlreadyHeld => Outcome::Reply(ok_json(true)),
+            Verdict::AlreadyHeld => Outcome::Reply(ok_json(endpoint, true)),
             Verdict::Grant { own_alias } => {
                 if own_alias {
-                    if let Err(err) = self.platform.add_alias() {
+                    if let Err(err) = self.platform.add_alias(endpoint) {
                         return Outcome::Reply(err_json(Code::HelperUnavailable, &err, None));
                     }
                 }
-                match self.platform.bind_setup() {
+                match self.platform.bind(endpoint) {
                     Ok(listener) => {
                         let instance = req.instance.clone();
                         self.book.insert(Lease {
                             instance: req.instance, nonce: req.nonce, pid: req.pid, control,
-                            alias_owned: own_alias, holding: true,
+                            alias_owned: own_alias, holding: true, endpoint,
                         });
-                        Outcome::Granted { json: ok_json(false), listener, instance }
+                        Outcome::Granted { json: ok_json(endpoint, false), listener, instance }
                     }
                     Err(err) => {
                         if own_alias {
-                            let _ = self.platform.remove_alias();
+                            let _ = self.platform.remove_alias(endpoint);
                         }
                         let code = if err.to_ascii_lowercase().contains("in use") || err.to_ascii_lowercase().contains("occupied") {
                             Code::EndpointOccupied
@@ -195,8 +197,8 @@ fn load_book(path: &Path) -> io::Result<Book> {
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, format!("cannot read {}", path.display())))
 }
 
-fn ok_json(already: bool) -> String {
-    format!("{{\"ok\":true,\"endpoint\":\"192.168.4.1:80\",\"already\":{already}}}\n")
+fn ok_json(endpoint: Endpoint, already: bool) -> String {
+    format!("{{\"ok\":true,\"endpoint\":\"{}:80\",\"already\":{already}}}\n", endpoint.ip_text())
 }
 
 fn shared_json(code: Code, message: &str, gateway: Option<(String, String)>) -> String {
@@ -410,6 +412,76 @@ mod tests {
         assert!(again.take_listener().is_some());
         again.release().unwrap();
         running.stop();
+    }
+
+    #[test]
+    fn setup_and_station_are_separate_leases_with_their_own_aliases() {
+        let running = Running::start("station", FakePlatform::authorized());
+        let mut setup = Session::acquire(&running.sock, &running.dir.join("a/helper.sock")).unwrap();
+        let mut station = Session::acquire_endpoint(&running.sock, &running.dir.join("b/helper.sock"), Endpoint::Station).unwrap();
+        assert!(setup.take_listener().is_some() && station.take_listener().is_some());
+        {
+            let helper = running.state.lock().unwrap();
+            assert!(helper.platform.alias && helper.platform.station_alias);
+            let endpoints: Vec<_> = helper.book.leases.iter().map(|l| l.endpoint).collect();
+            assert_eq!(endpoints, [Endpoint::Setup, Endpoint::Station]);
+        }
+        let Err(second) = Session::acquire_endpoint(&running.sock, &running.dir.join("c/helper.sock"), Endpoint::Station) else {
+            panic!("a second owner was granted the station address");
+        };
+        assert_eq!(second.code, "AddressInUse");
+
+        station.release().unwrap();
+        {
+            let helper = running.state.lock().unwrap();
+            assert!(helper.platform.alias && !helper.platform.station_alias, "only the station alias goes");
+        }
+        running.state.lock().unwrap().platform.alive.remove(&std::process::id());
+        let _ = setup.heartbeat();
+        assert!(!running.state.lock().unwrap().platform.alias, "a dead runtime's setup alias is removed");
+        running.stop();
+    }
+
+    #[test]
+    fn a_helper_from_before_endpoints_is_not_used_for_the_station() {
+        // It ignores "endpoint" and grants 192.168.4.1:80; the client must not take that
+        // listener as the station address.
+        let dir = scratch("outdated");
+        let sock = dir.join("helper.sock");
+        let listener = UnixListener::bind(&sock).unwrap();
+        let old = thread::spawn(move || {
+            let (mut conn, _) = listener.accept().unwrap();
+            let _ = read_line(&mut conn, 4096).unwrap();
+            let tcp = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
+            send_with_fd(&conn, b"{\"ok\":true,\"endpoint\":\"192.168.4.1:80\",\"already\":false}\n", Some(tcp.as_raw_fd())).unwrap();
+            read_line(&mut conn, 4096).unwrap()
+        });
+        let err = match Session::acquire_endpoint(&sock, &dir.join("a/helper.sock"), Endpoint::Station) {
+            Ok(_) => panic!("an outdated helper's setup lease was accepted as the station"),
+            Err(err) => err,
+        };
+        assert_eq!(err.code, "HelperOutdated");
+        assert!(old.join().unwrap().contains("\"op\":\"release\""), "the mistaken lease is handed back");
+    }
+
+    #[test]
+    fn the_protocol_version_is_reported_and_an_older_helper_counts_as_one() {
+        let running = Running::start("version", FakePlatform::authorized());
+        assert_eq!(crate::client::installed_protocol(&running.sock), Some(crate::PROTOCOL));
+        assert!(running.state.lock().unwrap().book.leases.is_empty(), "asking leases nothing");
+        running.stop();
+
+        // A helper from before `version` answers any unknown request with BadRequest.
+        let dir = scratch("version-old");
+        let sock = dir.join("helper.sock");
+        let listener = UnixListener::bind(&sock).unwrap();
+        thread::spawn(move || {
+            let (mut conn, _) = listener.accept().unwrap();
+            let _ = read_line(&mut conn, 4096);
+            let _ = send_with_fd(&conn, err_json(Code::BadRequest, "malformed request", None).as_bytes(), None);
+        });
+        assert_eq!(crate::client::installed_protocol(&sock), Some(1));
+        assert_eq!(crate::client::installed_protocol(&dir.join("absent.sock")), None);
     }
 
     #[test]
