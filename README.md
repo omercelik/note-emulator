@@ -211,5 +211,6 @@ credentials compiled in keeps them in its AVD's flash, under your data directory
 The engine is a fork of [esp32sim](https://github.com/joakimeriksson/esp32sim) by Joakim
 Eriksson and Alice (MIT). Bundled firmware and data keep their own licences; see [`licenses/`](licenses/).
 
-NOTE Emulator is an independent project, not affiliated with or endorsed by Zectrix. NOTE4 and
-NOTE4C are their products, and the device shells are drawn from their product photos.
+NOTE Emulator is an independent community project, not affiliated with or endorsed by Zectrix.
+NOTE4 and NOTE4C are their products, and the device shells are drawn from their product photos.
+The emulator is for development: always confirm final compatibility on real hardware.
