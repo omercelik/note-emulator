@@ -6,6 +6,9 @@ iOS Simulator. It runs **unmodified firmware** on a Rust engine (a fork of
 [esp32sim](https://github.com/joakimeriksson/esp32sim)), with a native macOS app, a headless
 `note-emu` host per device and an `adb`-like `ndb` tool.
 
+An independent project: not affiliated with or endorsed by Zectrix. NOTE4 and NOTE4C are their
+products, and the device shells are drawn from their product photos.
+
 <p align="center">
   <img src="docs/media/devices.png" width="760" alt="A NOTE4 showing the 16-gray display gallery and a NOTE4C showing a Gemini Live card, each in its device shell">
 </p>
