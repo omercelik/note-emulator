@@ -1,21 +1,31 @@
 # NOTE Emulator
 
-An emulator for the Zectrix **NOTE4C** (four-colour e-paper) and **NOTE4** (black-and-white,
-partial refresh, 16-level gray) ESP32-S3 devices, in the spirit of the Android Emulator and the
-iOS Simulator. It runs **unmodified firmware** on a Rust engine (a fork of
-[esp32sim](https://github.com/joakimeriksson/esp32sim)), with a native macOS app, a headless
-`note-emu` host per device and an `adb`-like `ndb` tool.
+**Run real NOTE4 and NOTE4C firmware on your Mac. No device, no flashing, no waiting on e-paper.**
 
-An independent project: not affiliated with or endorsed by Zectrix. NOTE4 and NOTE4C are their
-products, and the device shells are drawn from their product photos.
+NOTE Emulator is to Zectrix's ESP32-S3 e-paper devices what the iOS Simulator and the Android
+Emulator are to phones. Open a device in a window, boot the exact image you would flash, then
+press its buttons, watch the panel refresh, and open its web pages in your browser.
 
 <p align="center">
   <img src="docs/media/devices.png" width="760" alt="A NOTE4 showing the 16-gray display gallery and a NOTE4C showing a Gemini Live card, each in its device shell">
 </p>
 
-> A personal developer tool for Apple Silicon Macs (macOS 15 or later).
-> [Download the signed and notarized app](https://github.com/omercelik/note-emulator/releases/latest),
-> or build it from source (see [Try it](#try-it)).
+- **Unmodified firmware.** Factory images, the NOTE4 reference demo and community apps boot
+  as they are, on an ESP32-S3 engine written in Rust.
+- **The real panels.** The NOTE4C's four colours and the NOTE4's 16 grays, partial refresh
+  included, in a window shaped like the device, with working buttons and status LED.
+- **Real networking.** A simulated Wi-Fi network with internet through your Mac, plus the
+  firmware's own setup hotspot and web pages in your browser.
+- **Sound in and out.** The speaker plays on your Mac; your microphone feeds the device's.
+- **Pick up where you left off.** Each device keeps its own flash, settings and full machine
+  state: close it, reopen it, and it resumes exactly there.
+- **Made for firmware work.** `idf.py flash` and `monitor` over a virtual serial port, GDB,
+  symbolized panics, screenshots and recordings, plus `ndb`, an `adb`-style command line for
+  scripting it all.
+
+**[Download for Apple Silicon](https://github.com/omercelik/note-emulator/releases/latest)**
+(macOS 15 or later, signed and notarized), or [build it from source](#try-it).
+Free and open source under the MIT licence.
 
 ## Try it
 
@@ -195,3 +205,11 @@ skip when those are absent.
 
 Private firmware images, flash dumps and `.env` files are never committed. A firmware built with
 credentials compiled in keeps them in its AVD's flash, under your data directory.
+
+## Credits
+
+The engine is a fork of [esp32sim](https://github.com/joakimeriksson/esp32sim) by Joakim
+Eriksson and Alice (MIT). Bundled firmware and data keep their own licences; see [`licenses/`](licenses/).
+
+NOTE Emulator is an independent project, not affiliated with or endorsed by Zectrix. NOTE4 and
+NOTE4C are their products, and the device shells are drawn from their product photos.
